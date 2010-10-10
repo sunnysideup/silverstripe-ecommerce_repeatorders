@@ -1,0 +1,6 @@
+.RepeatOrderList {background-image: none; list-style: none; margin-left: 0px; padding-left: 0px}
+.RepeatOrderList li.RepeatOrdersMainListItem {background-image: none; list-style: none; margin-left: 0px; padding-left: 0px}
+.RepeatOrderList h2 {margin-top: 0!important; padding-top: 0!important;}
+.TestDraftOrderList li.past, .DraftOrderList li.past {color: red!important;font-style: italic!important;}
+.TestDraftOrderList li.current, .DraftOrderList li.current {color: green!important; font-weight: bold!important;}
+.TestDraftOrderList li.future, .DraftOrderList li.future {color: #aaa!important;}
