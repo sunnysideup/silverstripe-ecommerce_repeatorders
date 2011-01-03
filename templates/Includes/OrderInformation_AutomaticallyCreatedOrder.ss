@@ -12,9 +12,9 @@
 			<tr id="$IDForTable" class="$ClassForTable">
 				<td class="product title" scope="row">
 					<% if Link %>
-						<a href="$Link" title="<% sprintf(_t("READMORE","Click here to read more on &quot;%s&quot;"),$Title) %>">$ProductTitle</a>
+						<a href="$Link" title="<% sprintf(_t("READMORE","Click here to read more on &quot;%s&quot;"),$Title) %>">$BuyableTitle</a>
 					<% else %>
-						$ProductTitle
+						$BuyableTitle
 					<% end_if %>
 				</td>
 				<td class="center quantity">$Quantity</td>
@@ -22,7 +22,7 @@
 				<td class="right total" id="$TotalIDForTable">$Total.Nice</td>
 			</tr>
 		<% end_control %>
-		
+
 		<tr class="gap summary">
 			<td colspan="2" scope="row"><% _t("SUBTOTAL","Sub-total") %></td>
 			<td>&nbsp;</td>
@@ -38,13 +38,13 @@
 				</tr>
 			<% end_if %>
 		<% end_control %>
-				
+
 		<tr class="gap Total">
 			<td colspan="2" scope="row"><% _t("TOTAL","Total") %></td>
 			<td>&nbsp;</td>
 			<td class="right" id="$TotalIDForTable">$Total.Nice $Currency</td>
 		</tr>
-		
+
 		<% control Payment %>
 			<tr class="gap">
 				<td colspan="4" scope="row" class="left ordersummary"><h3><% _t("ORDERSUMMARY","Order Summary") %>:</h3></td>
@@ -85,7 +85,7 @@
 		<td colspan="3" scope="row" class="left"><strong><% _t("TOTALOUTRepeat","Total outRepeat") %></strong></td>
 		<td class="price"><strong>$TotalOutRepeat.Nice </strong></td>
 	</tr>
-	
+
 	<% control Member %>
 		<tr class="gap">
 			<th colspan="4" scope="row" class="left"><% _t("CUSTOMERDETAILS","Customer Details") %></th>
@@ -109,7 +109,7 @@
 		<tr class="summary">
 			<td colspan="3" scope="row" class="left"><% _t("EMAIL","Email") %></td>
 			<td class="price">$Email</td>
-		</tr>				
+		</tr>
 		<tr class="gap">
 			<th colspan="4" scope="row" class="left"><% _t("ADDRESS","Address") %></th>
 		</tr>
@@ -168,6 +168,6 @@
 		</tr>
 		<% end_if %>
 	<% end_if %>
-	
+
 	</tbody>
 </table>

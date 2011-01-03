@@ -535,7 +535,7 @@ HTML
 		if($orderItems) {
 			foreach($orderItems as $orderItem) {
 				$value = isset($alternatives[$orderItem->ProductID]) ? $alternatives[$orderItem->ProductID] : null;
-				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][0]', $orderItem->ProductTitle(), $productsMap, $value[0]));
+				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][0]', $orderItem->BuyableTitle(), $productsMap, $value[0]));
 				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][1]', '', $productsMap, $value[1]));
 				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][2]', '', $productsMap, $value[2]));
 				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][3]', '', $productsMap, $value[3]));
@@ -585,7 +585,7 @@ HTML
 		if($orderItems) {
 			foreach($orderItems as $orderItem) {
 				$value = isset($alternatives[$orderItem->ProductID]) ? $alternatives[$orderItem->ProductID] : null;
-				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][0]', $orderItem->ProductTitle(), $productsMap, $value[0]));
+				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][0]', $orderItem->BuyableTitle(), $productsMap, $value[0]));
 				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][1]', '', $productsMap, $value[1]));
 				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][2]', '', $productsMap, $value[2]));
 				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][3]', '', $productsMap, $value[3]));
@@ -971,7 +971,7 @@ class RepeatOrder_OrderItem extends DataObject {
 		return $this->Product()->Title;
 	}
 
-	public function ProductTitle() {
+	public function BuyableTitle() {
 		return $this->Product()->Title;
 	}
 

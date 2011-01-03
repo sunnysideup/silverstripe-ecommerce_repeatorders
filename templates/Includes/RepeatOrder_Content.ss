@@ -39,9 +39,9 @@
 		<tr id="$IDForTable" class="$ClassForTable">
 			<td class="product title" scope="row">
 				<% if Link %>
-					<a href="$Link" title="<% sprintf(_t("READMORE","Click here to read more on &quot;%s&quot;"),$Title) %>">$ProductTitle</a>
+					<a href="$Link" title="<% sprintf(_t("READMORE","Click here to read more on &quot;%s&quot;"),$Title) %>">$BuyableTitle</a>
 				<% else %>
-					$ProductTitle
+					$BuyableTitle
 				<% end_if %>
 			</td>
 			<td>$Quantity</td>
