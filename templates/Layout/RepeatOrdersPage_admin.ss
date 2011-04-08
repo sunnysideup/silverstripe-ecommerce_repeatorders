@@ -22,26 +22,6 @@
 </ul>
 <h2>Repeat Orders</h2>
 <ul class="RepeatOrderList">
-	<% control AllRepeatOrders %>
-	<li class="RepeatOrdersMainListItem">
-		<h2><a href="#RepeatOrderDetails-$ID" rel="$ID" class="RepeatOrderLink <% if OutRepeatAutomaticallyCreatedOrders %>RepeatOrderWithOutRepeat<% else %>RepeatOrderWithoutOutRepeat<% end_if %>" <% if First %>id="firstRepeatOrderLink"<% end_if %>>Repeat Order # $ID</a></h2>
-		<div>
-			<div id="RepeatOrderDetails-$ID" class="RepeatOrderDetails"><% include RepeatOrder_Content %></div>
-			<% if OutRepeatAutomaticallyCreatedOrders %>
-			<ul class="DraftOrderList">
-				<% control OutRepeatAutomaticallyCreatedOrders %>
-					<li class="$FuturePast">
-						Date: $OrderDate.Long, Status: $Status<% if FuturePast = future %><% else %>, next: <a href="$LoadLink" class="completeRepeatOrder">complete now</a><% end_if %>
-					</li>
-				<% end_control %>
-			</ul>
-			<% else %>
-			<p>There are no &quot;<em>to be completed</em>&quot; orders associated with this Repeat Order.</p>
-			<% end_if %>
-			<hr />
-		</div>
-	</li>
-	<% end_control %>
 <% else %>
 <p>There are currently no <em>active</em> Repeat orders. If you were expecting some active orders here then please make sure they are <a href="/admin/Repeat-orders">made <em>active</em></a> in the CMS first.</p>
 <% end_if %>

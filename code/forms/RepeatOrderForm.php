@@ -22,7 +22,7 @@ class RepeatOrderForm extends Form {
 		$fields = new FieldSet();
 		$fields->push(new HeaderField('AlternativesHeader', 'Products'));
 
-		$products = DataObject::get('FishProduct');
+		$products = DataObject::get('Product');
 		$productsMap = $products->map('ID', 'Title', ' ');
 		if($RepeatOrder) {
 			//$fields->push($this->complexTableField($RepeatOrder));

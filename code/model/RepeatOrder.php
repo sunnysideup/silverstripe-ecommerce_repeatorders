@@ -12,19 +12,18 @@ class RepeatOrder extends DataObject {
 
 	public static $db = array(
 		'Status' => "Enum('Pending, Active, MemberCancelled, AdminCancelled, Finished', 'Pending')",
-
+		//dates
 		'Start' => 'Date',
 		'End' => 'Date',
 		'Period' => 'Varchar',
-
+		'DeliveryDay' => 'Text',
+		//payment
 		'PaymentMethod' => 'Varchar',
 		"CreditCardOnFile" => "Boolean",
 		"PaymentNote" => "Text",
-
-		'DeliveryDay' => 'Text', //Serialized Array
+		//computed values and notes
 		'Alternatives' => 'Text', //Serialized Array
 		'Items' => 'Text', //FOR SEARCH PURPOSES ONLY!
-
 		'Notes' => 'Text'
 
 	);
@@ -172,8 +171,6 @@ class RepeatOrder extends DataObject {
 			return $k;
 		}
 	}
-
-
 
 	public function CanModify() {
 		if(in_array($this->Status, array('Pending', 'Active'))) {
@@ -528,7 +525,7 @@ HTML
 		$alternatives = unserialize($this->Alternatives);
 		$orderItems = $this->OrderItems();
 
-		$products = DataObject::get('FishProduct');
+		$products = DataObject::get('Product');
 		$productsMap = array('');
 		$productsMap = $products->map('ID', 'Title', ' ');
 
@@ -543,12 +540,14 @@ HTML
 			}
 		}
 
+		/*
+		to do: MAKE WORK
 		$fields->addFieldToTab('Root', new Tab(
 			'HistoryOfChanges',
 			new HeaderField("HistoryTableHeader", "List of updates to the Repeat order"),
 			$this->getCMSHistoryTable()
 		));
-
+		*/
 		return $fields;
 	}
 
@@ -578,7 +577,7 @@ HTML
 		$alternatives = unserialize($this->Alternatives);
 		$orderItems = $this->getVersionedComponents('OrderItems');
 
-		$products = DataObject::get('FishProduct');
+		$products = DataObject::get('Product');
 		$productsMap = array('');
 		$productsMap = $products->map('ID', 'Title', ' ');
 
@@ -754,7 +753,6 @@ HTML
 		}
 
 		if($this->ID == false) {
-			$this->changed['Version'] = 1;
 
 			if(!isset($this->record['Version'])) {
 				$this->record['Version'] = -1;
@@ -992,14 +990,6 @@ class RepeatOrder_OrderItem extends DataObject {
 	 */
 	public function onBeforeWrite() {
 		parent::onBeforeWrite();
-
-		if($this->ID == false) {
-			$this->changed['Version'] = 1;
-			if(!isset($this->record['Version'])) {
-				$this->record['Version'] = -1;
-			}
-		}
-
 		if(RepeatOrder::$update_versions == true) {
 			if($this->ID) {
 				$this->Order()->ignoreID = $this->ID;

@@ -26,21 +26,6 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 		);
 	}
 
-	/**
-	 */
-	public function Status() {
-		if(!$this->owner->Completed()) {
-			if(!$this->owner->OrderItemsAdded()){
-				return 'Draft Order';
-			}
-			else {
-				return "Items loaded but incomplete";
-			}
-		}
-		return $this->owner->Status;
-	}
-
-
 	function Completed() {
 		return DataObject::get_one("Payment", "OrderID =".$this->owner->ID, false);
 	}
@@ -70,8 +55,7 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 	 * Publish the order
 	 * @return null
 	 */
-	public function publishOrder() {
-	}
+	public function publishOrder() {}
 
 	function ViewHTMLLink() {
 		return '<a href="OrderReportWithLog_Popup/invoice/'.$this->owner->ID.'" class="makeIntoPopUp">View</a>';
@@ -123,15 +107,11 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 							}
 						}
 						if($product) {
+							$newProductOrderItem = new Product_OrderItem();
+							$newProductOrderItem->BuyableID = $orderItem->ProductID;
 							ShoppingCart::add_new_item(
-								new Product_OrderItem(
-									array(
-										'ProductID' => $orderItem->ProductID,
-										'ProductVersion' => $orderItem->ProductVersion(),
-										'Quantity' => $orderItem->Quantity,
-									),
-									$orderItem->Quantity
-								)
+								$newProductOrderItem,
+								$orderItem->Quantity
 							);
 						}
 					}
@@ -143,7 +123,6 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 			else {
 				USER_ERROR("There are no order items", E_USER_WARNING);
 			}
-
 		}
 		else {
 			USER_ERROR("Order #".$this->owner->ID." does not have a Repeat order associated with it!", E_USER_WARNING);
@@ -154,13 +133,14 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 
 	function onBeforeWrite() {
 		parent::onBeforeWrite();
-		if($id = Session::get("DraftOrderID")) {
+		if($id = intvaL(Session::get("DraftOrderID"))) {
 			$oldOne = DataObject::get_by_id("Order", $id);
-			if($oldOne && $this->owner->MemberID = $oldOne->MemberID) {
+			if($oldOne && $this->owner->MemberID == $oldOne->MemberID) {
 				$this->owner->OrderDate = $oldOne->OrderDate;
 				$this->owner->OrderDateInteger = $oldOne->OrderDateInteger;
 				$this->owner->UIDHash = $oldOne->UIDHash;
 				$this->owner->RepeatOrderID = $oldOne->RepeatOrderID;
+				//does thsi work????
 				$oldOne->delete();
 			}
 			else {
