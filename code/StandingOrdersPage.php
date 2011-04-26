@@ -170,6 +170,7 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller {
 		$orderID = $request->param('OtherID');
 
 		switch($request->param('ID')) {
+			//TO DO: align with new version of e-commerce!
 			case 'cancel':
 				if($orderID) {
 					$RepeatOrder = DataObject::get_by_id('RepeatOrder', $orderID);

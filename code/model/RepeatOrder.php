@@ -11,6 +11,7 @@ class RepeatOrder extends DataObject {
 		static function get_minimum_days_in_the_future() {return self::$minimum_days_in_the_future;}
 
 	public static $db = array(
+		//TO DO: align with new version of e-commerce!
 		'Status' => "Enum('Pending, Active, MemberCancelled, AdminCancelled, Finished', 'Pending')",
 		//dates
 		'Start' => 'Date',
@@ -100,7 +101,9 @@ class RepeatOrder extends DataObject {
 	protected static $status_nice = array(
 		'Pending' => 'Pending',
 		'Active' => 'Active',
+		//TO DO: align with new version of e-commerce!
 		'MemberCancelled' => 'Pending Cancellation',
+		//TO DO: align with new version of e-commerce!
 		'AdminCancelled' => 'Cancelled',
 		'Finished' => 'Finished',
 	);

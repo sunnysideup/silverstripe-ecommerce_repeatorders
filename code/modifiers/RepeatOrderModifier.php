@@ -78,11 +78,11 @@ HTML
 		return new OrderModifierForm($controller, 'ModifierForm', $fields, new FieldSet());
 	}
 
-	public function LiveAmount() {
-		return null;
+	public function LiveCalculationValue() {
+		return 0;
 	}
 
-	public function CanRemove() {
+	public function CanBeRemoved() {
 		return false;
 	}
 
