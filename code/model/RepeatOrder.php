@@ -819,7 +819,8 @@ HTML
 
 //===========================================================================================================================================================================================
 
-	function OrderItemList() {
+	function OrderItemList() {return $this->getOrderItemList();}
+	function getOrderItemList() {
 		$a = array();
 		if($list = $this->OrderItems()) {
 			foreach($list as $item) {
@@ -835,13 +836,9 @@ HTML
 		return "Products: ".implode(", ", $a).".";
 	}
 
-	function getOrderItemList() {
-		return $this->OrderItemList();
-	}
-
 //===========================================================================================================================================================================================
-
-	function FirstOrderDate() {
+	function FirstOrderDate() {return $this->getFirstOrderDate();}
+	function getFirstOrderDate() {
 		$a = $this->workOutSchedule();
 		if(count($a)) {
 			foreach($a as $k => $v) {
@@ -850,11 +847,8 @@ HTML
 		}
 	}
 
-	function getFirstOrderDate() {
-		return $this->FirstOrderDate();
-	}
-
-	function LastOrderDate() {
+	function LastOrderDate() {return $this->getLastOrderDate();}
+	function getLastOrderDate() {
 		$a = $this->workOutSchedule();
 		$today = strtotime(Date("Y-m-d"));
 		$i = 0;
@@ -869,11 +863,8 @@ HTML
 		}
 	}
 
-	function getLastOrderDate() {
-		return $this->LastOrderDate();
-	}
-
-	function NextOrderDate() {
+	function NextOrderDate() {return $this->getNextOrderDate();}
+	function getNextOrderDate() {
 		$a = $this->workOutSchedule();
 		$today = strtotime(Date("Y-m-d"));
 		if(count($a)) {
@@ -885,11 +876,8 @@ HTML
 		}
 	}
 
-	function getNextOrderDate() {
-		return $this->NextOrderDate();
-	}
-
-	function FinalOrderDate() {
+	function FinalOrderDate() {return $this->getFinalOrderDate();}
+	function getFinalOrderDate() {
 		$a = $this->workOutSchedule();
 		if(count($a)) {
 			foreach($a as $k =>$v) {
@@ -901,20 +889,14 @@ HTML
 		}
 	}
 
-	function getFinalOrderDate() {
-		return $this->FinalOrderDate();
-	}
-
-	function DeliverySchedule() {
+	function DeliverySchedule() {return $this->getDeliverySchedule();}
+	function getDeliverySchedule() {
 		$a = $this->workOutSchedule();
 		if(count($a)) {
 			return implode("; ", $a);
 		}
 	}
 
-	function getDeliverySchedule() {
-		return $this->DeliverySchedule();
-	}
 
 	protected function workOutSchedule() {
 		if(!isset(self::$schedule[$this->ID])) {
