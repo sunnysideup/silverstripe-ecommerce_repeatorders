@@ -90,4 +90,8 @@ HTML
 		return false;
 	}
 
+	public function LiveName(){
+		return "";
+	}
+
 }
