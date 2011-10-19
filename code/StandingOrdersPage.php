@@ -326,7 +326,7 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller {
 
 	function admin() {
 		$bt = defined('DB::USE_ANSI_SQL') ? "\"" : "`";
-		if(!Permission::check('ADMIN')) {
+		if(!Permission::check('ADMIN') && !Permission::check("SHOPADMIN")) {
 			return Security::permissionFailure($this, _t('OrderReport.PERMISSIONFAILURE', 'Sorry you do not have permission for this function. Please login as an Adminstrator'));
 		}
 		RepeatOrder::create_automatically_created_orders();
