@@ -78,7 +78,7 @@ HTML
 		return new OrderModifierForm($controller, 'ModifierForm', $fields, new FieldSet());
 	}
 
-	public function LiveCalculationValue() {
+	public function LiveCalculatedTotal() {
 		return 0;
 	}
 
