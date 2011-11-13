@@ -1,23 +1,33 @@
 ###############################################
-Ecommerce Standing Orders
+Ecommerce Repeat Orders
 Pre 0.1 proof of concept
 ###############################################
 
-Developer
+Add the "repeating order" functionality to
+e-commerce.  For example, if someone wants to purchase
+a weekly loaf of bread without having to re-enter
+the order each week, the repeating order module allows
+the customer to enter the order once at which time
+the shop admin can execute the weekly repeat of the order.
+
+
+Developers
 -----------------------------------------------
 Nicolaas Francken [at] sunnysideup.co.nz
 
 Requirements
 -----------------------------------------------
-SilverStripe 2.3.0 or greater.
+Ecommerce 1.0+ / SSU Branch
+SilverStripe 2.4+
+Payment class that allows repeating payment
 
-Documentation
+Project Home
 -----------------------------------------------
-see:
-http://silverstripe-webdevelopment.com/ecommerce_standingorders
+See http://code.google.com/p/silverstripe-ecommerce
 
-
-
+Demo
+-----------------------------------------------
+See http://www.silverstripe-ecommerce.com
 
 Installation Instructions
 -----------------------------------------------
@@ -30,11 +40,3 @@ it from your mysite folder, so that you can upgrade the module without redoing t
 If you just want one or two things from this module
 then of course you are free to copy them to your
 mysite folder and delete the rest of this module.
-
-
-
-
-
-
-
-
