@@ -2,6 +2,13 @@
 
 class RepeatOrderModifier extends OrderModifier {
 
+
+	public static $singular_name = "Repeat Order Modifier";
+		function i18n_singular_name() { return _t("RepeatOrderModifier.REPEATORDERMODIFIER", "Repeat Order Modifier");}
+
+	public static $plural_name = "Repeat Order Modifiers";
+		function i18n_plural_name() { return _t("RepeatOrderModifier.REPEATORDERMODIFIERS", "Repeat Order Modifiers");}
+
 	protected static $is_chargable = false;
 
 	public static function show_form() {
