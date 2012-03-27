@@ -1,19 +1,6 @@
 <?php
 
-class RepeatOrderAdmin extends ModelAdmin {
 
-	public static $managed_models = array(
-		'RepeatOrder'
-	);
-
-	public static $url_segment = 'Repeat-orders';
-
-	public static $menu_title = 'Repeat Orders';
-
-	public static $collection_controller_class = 'RepeatOrderAdmin_CollectionController';
-
-
-}
 
 class RepeatOrderAdmin_CollectionController extends ModelAdmin_CollectionController{
 	//manages everything to do with overall control (e.g. search form, import, etc...)
