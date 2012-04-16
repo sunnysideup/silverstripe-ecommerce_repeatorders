@@ -37,7 +37,7 @@ class RepeatOrdersPage extends AccountPage {
 	 * @param String $action
 	 * @param int|string $orderID ID of the order
 	 */
-	public static function get_repeat_order_link($action = 'view', $orderID = 0) {
+	public static function get_repeat_order_link($action = 'view', $repeatOrderID = 0) {
 		$page = DataObject::get_one(__CLASS__);
 		if(!$page) {
 			user_error('No RepeatOrderPage was found. Please create one in the CMS!', E_USER_ERROR);
