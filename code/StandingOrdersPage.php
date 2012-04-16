@@ -9,12 +9,18 @@
  */
 class RepeatOrdersPage extends AccountPage {
 
+	/**
+	 * Standard SS method
+	 */
 	static $db = array(
-		"OrderDays" => "Varchar(255)",
-		"WhatAreRepeatOrders" => "HTMLText",
-		"OnceLoggedInYouCanCreateRepeatOrder" => "HTMLText"
+		"OrderDays" => "Varchar(255)", //days of the week that can be ordered.
+		"WhatAreRepeatOrders" => "HTMLText", // explanation of repeat orders in general
+		"OnceLoggedInYouCanCreateRepeatOrder" => "HTMLText" //explaining the benefits of logging in for Repeat Orders
 	);
 
+	/**
+	 * Standard SS method
+	 */
 	protected static $week_days = array(
 		"Monday" => "Monday",
 		"Tuesday" => "Tuesday",
@@ -25,26 +31,35 @@ class RepeatOrdersPage extends AccountPage {
 		"Sunday" => "Sunday"
 	);
 
-	public static $add_action = 'a Repeat Orders Page';
-
 	/**
 	 * Return a link to view the order on the account page.
-	 *
+	 * actions are: create, update, view
+	 * @param String $action
 	 * @param int|string $orderID ID of the order
-	 * @param boolean $urlSegment Return the URLSegment only
 	 */
-	public static function get_Repeat_order_link($action = 'view', $orderID = null, $urlSegment = false) {
-		if(!$page = DataObject::get_one(__CLASS__)) {
+	public static function get_repeat_order_link($action = 'view', $orderID = 0) {
+		$page = DataObject::get_one(__CLASS__);
+		if(!$page) {
 			user_error('No RepeatOrderPage was found. Please create one in the CMS!', E_USER_ERROR);
 		}
-
-		return ($urlSegment ? $page->URLSegment . '/' : $page->Link()) . 'Repeat-order/'.$action.'/' . $orderID;
+		return $page->Link($action, $repeatOrderID);
 	}
 
+	/**
+	 * standard SS Method
+	 */
 	public function canCreate($member = null) {
 		return !DataObject::get_one("RepeatOrdersPage");
 	}
 
+	/**
+	 * standard SS Variable
+	 */
+	public static $hide_ancestor = "AccountPage";
+
+	/**
+	 * standard SS Method
+	 */
 	function getCMSFields() {
 		$fields = parent::getCMSFields();
 		$fields->addFieldToTab("Root.Content.Settings", new TextField($name = "OrderDays", $title = "Order Weekdays - separated by comma, e.g. Monday, Tuesday, Wednesday"));
@@ -61,7 +76,7 @@ class RepeatOrdersPage extends AccountPage {
 	 */
 	public function RepeatOrders() {
 		$memberID = Member::currentUserID();
-		return DataObject::get('RepeatOrder', "MemberID = '$memberID'", "Created DESC");
+		return DataObject::get('RepeatOrder', "MemberID = '$memberID'", "\"Created\" DESC");
 	}
 
 	/**
@@ -70,21 +85,27 @@ class RepeatOrdersPage extends AccountPage {
 	 */
 	public function requireDefaultRecords() {
 		parent::requireDefaultRecords();
-
 		if(!DataObject::get_one('RepeatOrdersPage')) {
 			$page = new RepeatOrdersPage();
 			$page->Title = 'Repeat Orders';
 			$page->Content = '<p>This is the Repeat orders account page. It is used for shop users to login and create or change their Repeat orders.</p>';
-			$page->URLSegment = 'Repeat-orders';
+			$page->URLSegment = 'repeat-orders';
+			$page->WhatAreRepeatOrders = '<p>Repeat Orders allow you to regularly repeat an order.</p>';
+			$page->OnceLoggedInYouCanCreateRepeatOrder = '<p>Once logged in you can setup a repeating order.</p>';
 			$page->ShowInMenus = 0;
+			$page->ShowInSearch = 0;
 			$page->writeToStage('Stage');
 			$page->publish('Stage', 'Live');
-
 			if(method_exists('DB', 'alteration_message')) DB::alteration_message('Repeat Order page \'Repeat Orders\' created', 'created');
 		}
 	}
 
+	/**
+	 * Standard SS method
+	 * Sets the days available for repeating orders.
+	 */
 	function onBeforeWrite() {
+		parent::onBeforeWrite();
 		$days = explode(",", $this->OrderDays);
 		$cleanDays = array();
 		if(count($days)) {
@@ -105,7 +126,6 @@ class RepeatOrdersPage extends AccountPage {
 		else {
 			$this->OrderDays = implode(",", self::$week_days);
 		}
-		parent::onBeforeWrite();
 	}
 
 }
@@ -114,230 +134,104 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller {
 
 	function init() {
 		parent::init();
-
-		if(!Member::currentUserID()) {
-			$messages = array(
-				'default' => '<p class="message good">' . _t('AccountPage.Message', 'You\'ll need to login before you can access the Repeat orders page. If you are not registered, you won\'t be able to access it until you make your first order, otherwise please enter your details below.') . '</p>',
-				'logInAgain' => 'You have been logged out. If you would like to log in again, please do so below.'
-			);
-
-			//Security::permissionFailure($this, $messages);
-			return false;
-		}
 	}
 
-	public function order($request) {
-		Requirements::themedCSS('Order');
-		Requirements::themedCSS('Order_print', 'print');
+	function createorder($request){
+		$order = ShoppingCart::current_order();
+		//TODO: move items to order
+		$params = array(
+			'Order' => $order,
+		);
+		return $this->renderWith(array('RepeatOrdersPage_edit', 'Page'), $params);
+	}
 
-		$memberID = Member::currentUserID();
-		$accountPageLink = AccountPage::find_link();
+	function cancel($request){
+		if($repeatOrderID = intval($request->param("ID"))) {
+			$repeatOrder = DataObject::get_one('RepeatOrder', "RepeatOrder.ID = '$repeatOrderID'");
+			if($repeatOrder && $repeatOrder->canEdit()) {
+				$repeatOrder->Status = 'MemberCancelled';
+				$repeatOrder->write();
+				Director::redirectBack();
+			}
+		}
+		die("Could not cancel repeat order.");
+	}
 
-		if($orderID = $request->param('ID')) {
-			if($order = DataObject::get_one('Order', "Order.ID = '$orderID' AND MemberID = '$memberID'")) {
-				return array(
-					'Order' => $order,
-					'CreateLink' => RepeatOrdersPage::get_Repeat_order_link('create', $orderID)
-				);
-			} else {
-				return array(
-					'Order' => false,
-					'Message' => 'You do not have any order corresponding to this ID. However, you can <a href="' . $accountPageLink . '">edit your personal details and view your orders.</a>.'
+	function view($request){
+		$params = array(
+			'RepeatOrder' => false,
+			'Message' => 'Repeating order could not be found.'
+		);
+		if($repeatOrderID = intval($request->param("ID"))) {
+			$repeatOrder = DataObject::get_one('RepeatOrder', "RepeatOrder.ID = '$repeatOrderID'");
+			if($repeatOrder && $repeatOrder->canView()) {
+				$params = array(
+					'RepeatOrder' => $order,
+					'Message' => "Please review order below."
 				);
 			}
-		} else {
-			return array(
-				'Order' => false,
-				'Message' => 'There is no order by that ID. You can <a href="' . $accountPageLink . '">edit your personal details and view your orders</a>.'
-			);
 		}
+		return $this->renderWith(array('RepeatOrdersPage_view', 'Page'), $params);
+	}
+
+	function modify($request){
+		$params = array(
+			'RepeatOrder' => false,
+			'Message' => 'There is no order by that ID.'
+		);
+		if($repeatOrderID = intval($request->param("ID"))) {
+			$repeatOrder = DataObject::get_by_id('RepeatOrder', $repeatOrderID);
+			if($repeatOrder->canEdit()) {
+				$params = array(
+					'RepeatOrder' => false,
+					'Message' => 'Please edit your details below.'
+				);
+			}
+		}
+		return $this->renderWith(array('RepeatOrdersPage_edit', 'Page'), $params);
 	}
 
 	/**
-	 * Return the {@link Order} details for the current
-	 * Order ID that we're viewing (ID parameter in URL).
 	 *
-	 * @return array of template variables
+	 * @return RepeatOrderForm
 	 */
-	public function Repeat_order($request) {
-		Versioned::reading_stage('Stage');
-
-		Requirements::themedCSS('Order');
-		Requirements::themedCSS('Order_print', 'print');
-
-		$memberID = Member::currentUserID();
-		$accountPageLink = AccountPage::find_link();
-		$orderID = $request->param('OtherID');
-
-		switch($request->param('ID')) {
-			//TO DO: align with new version of e-commerce!
-			case 'cancel':
-				if($orderID) {
-					$RepeatOrder = DataObject::get_by_id('RepeatOrder', $orderID);
-					$RepeatOrder->Status = 'MemberCancelled';
-					$RepeatOrder->write();
-
-					Director::redirectBack();
-				}
-				break;
-			case 'create':
-				$order = isset($orderID) ? DataObject::get_by_id('Order', $orderID): $this->BlankOrder();
-
-				$params = array(
-					'Order' => $order,
-				);
-
-				return $this->renderWith(array('RepeatOrdersPage_edit', 'Page'), $params);
-				break;
-			case 'update':
-				$order = $this->BlankOrder();
-
-				$params = array(
-					'Order' => $order,
-				);
-
-				return $this->renderWith(array('RepeatOrdersPage_edit', 'Page'), $params);
-				break;
-			case 'load':
-				$order = DataObject::get_one("Order", "UIDhash = '".$orderID."'");
-				if($order) {
-					$RepeatOrder = $order->RepeatOrder();
-					if($RepeatOrder) {
-						$member = $order->Member();
-						if(Member::currentUserID() != $member->ID && Member::currentUserID()){
-							$oldMember = Member::currentUser();
-							$oldMember->logOut();
-						}
-						if($member->ID != Member::currentUserID()) {
-							$member->logIn();
-						}
-						if($member) {
-							if($order->CompleteOrder() != $order->ID) {
-								E_USER_ERROR("There was an error loading the Order", E_USER_ERROR);
-							}
-							Session::set('RepeatOrder', null);
-							Director::redirect(CheckoutPage::find_link());
-						}
-						else {
-							USER_ERROR("Could not find the associated Repeat Order.", E_USER_ERROR);
-						}
-					}
-					else {
-						USER_ERROR("Could not find member for order.", E_USER_ERROR);
-					}
-				}
-				else {
-					USER_ERROR("Could not find order.", E_USER_ERROR);
-				}
-				break;
-			case 'modify':
-				if(isset($orderID)) {
-
-					$RepeatOrder = DataObject::get_by_id('RepeatOrder', $orderID);
-
-					$items = ShoppingCart::get_items();
-
-					if($items) {
-						foreach($items as $item) {
-							ShoppingCart::remove_all_item($item->getProductID());
-						}
-					}
-
-					//fill cart with Repeat order items
-					$orderItems = $RepeatOrder->OrderItems();
-
-					if($orderItems || false) {
-						foreach($orderItems as $orderItem) {
-								ShoppingCart::add_new_item(new Product_OrderItem(
-								array(
-									'ProductID' => $orderItem->ProductID,
-									'ProductVersion' => $orderItem->ProductVersion(),
-									'Quantity' => $orderItem->Quantity,
-								),
-								$orderItem->Quantity
-							));
-						}
-					}
-					//save session identifier for editing Repeat order
-					Session::set('RepeatOrder', $orderID);
-
-					Director::redirect(RepeatOrdersPage::get_Repeat_order_link("update", $orderID));
-
-					$params = array();
-				}
-				else {
-					$params = array(
-						'RepeatOrder' => false,
-						'Message' => 'There is no order by that ID. You can <a href="' . $accountPageLink . '">edit your personal details and view your orders</a>.'
-					);
-				}
-
-				return $this->renderWith(array('RepeatOrdersPage_view', 'Page'), $params);
-				break;
-			case 'view':
-				if($orderID) {
-					if($order = DataObject::get_one('RepeatOrder', "RepeatOrder.ID = '$orderID' AND MemberID = '$memberID'")) {
-						$params = array(
-							'RepeatOrder' => $order
-						);
-					} else {
-						$params = array(
-							'RepeatOrder' => false,
-							'Message' => 'You do not have any order corresponding to this ID. However, you can <a href="' . $accountPageLink . '">edit your personal details and view your orders.</a>.'
-						);
-					}
-				} else {
-					$params = array(
-						'RepeatOrder' => false,
-						'Message' => 'There is no order by that ID. You can <a href="' . $accountPageLink . '">edit your personal details and view your orders.</a>.'
-					);
-				}
-				return $this->renderWith(array('RepeatOrdersPage_view', 'Page'), $params);
-
-		}
-
-	}
-
 	public function RepeatOrderForm() {
-		$action = $this->urlParams['ID'];
-		$orderID = $this->urlParams['OtherID'];
-
-		if($action == 'create' || isset($_REQUEST['action_doCreate'])) {
-			if(isset($_REQUEST['action_doCreate']) && isset($_REQUEST['OrderID'])) $orderID = $_REQUEST['OrderID'];
-			return new RepeatOrderForm($this, 'RepeatOrderForm', $orderID);
+		$action = $this->request->param('Action');
+		$repeatOrderID = intval($this->request->param('ID'));
+		if($action == 'createorder' || isset($_REQUEST['action_doCreate'])) {
+			if(isset($_REQUEST['action_doCreate']) && isset($_REQUEST['repeatOrderID'])) {
+				$repeatOrderID = $_REQUEST['repeatOrderID'];
+			}
+			return new RepeatOrderForm($this, 'RepeatOrderForm', $repeatOrderID, false);
 		}
 		else if($action == 'update' || isset($_REQUEST['action_doSave'])) {
-			if(isset($_REQUEST['action_doSave']) && isset($_REQUEST['RepeatOrderID'])) $orderID = $_REQUEST['RepeatOrderID'];
-			return new RepeatOrderForm($this, 'RepeatOrderForm', $orderID, true);
+			if(isset($_REQUEST['action_doSave']) && isset($_REQUEST['RepeatOrderID'])) {
+				$repeatOrderID = $_REQUEST['RepeatOrderID'];
+			}
+			return new RepeatOrderForm($this, 'RepeatOrderForm', $repeatOrderID, true);
+		}
+		else {
+			user_error("Could not find order");
 		}
 	}
 
-	public function BlankOrder() {
-		//Create an Order to use
-		$order = new Order();
-		$MemberID = Member::currentUserID();
-		if(!$MemberID) {
-			E_USER_ERROR("Trying to create order without related user");
-		}
-		$order->MemberID = $MemberID;
 
-		return $order;
-	}
-
+	/**
+	 * Show a list of all repeating orders.
+	 * @return HTML
+	 */
 	function admin() {
-		$bt = defined('DB::USE_ANSI_SQL') ? "\"" : "`";
-		if(!Permission::check('ADMIN') && !Permission::check("SHOPADMIN")) {
+		if(!Permission::check("ADMIN") && !Permission::check("SHOPADMIN")) {
 			return Security::permissionFailure($this, _t('OrderReport.PERMISSIONFAILURE', 'Sorry you do not have permission for this function. Please login as an Adminstrator'));
 		}
 		RepeatOrder::create_automatically_created_orders();
 		$params = array(
-			"AllRepeatOrders" => DataObject::get("RepeatOrder", "{$bt}Status{$bt} = 'Active'")
+			"AllRepeatOrders" => DataObject::get("RepeatOrder", "\"Status\" = 'Active'")
 		);
 		Requirements::javascript(THIRDPARTY_DIR."/jquery/jquery.js");
 		Requirements::javascript("ecommerce_Repeatorders/javascript/RepeatOrdersPage_admin.js");
 		Requirements::themedCSS("RepeatOrdersPage_admin");
 		return $this->renderWith(array('RepeatOrdersPage_admin', 'Page'), $params);
-
 	}
 
 }

@@ -9,7 +9,6 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 	function extraStatics() {
 		return array(
 			'db' => array(
-				"UIDHash" => "Varchar(32)", //used to be able to open the order without username / password
 				"OrderDate" => "Date", //date at which the order was instigated based on Repeat Order Requirements
 				"OrderDateInteger" => "Int" //date at which the order was instigated based on Repeat Order Requirements INTEGER FOR easy lookup
 			),
@@ -19,11 +18,14 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 			'casting' => array(
 				"Completed" => "Boolean", //has been paid
 				"OrderItemsAdded" => "Boolean" //has been paid
-			),
-			'indexes' => array(
-				'UIDHash' => 'unique (UIDHash)'
 			)
 		);
+	}
+
+	function updateCMSFields(&$fields) {
+		$fields->removeByName("OrderDate");
+		$fields->removeByName("OrderDateInteger");
+		$fields->removeByName("RepeatOrderID");
 	}
 
 	function Completed() {
@@ -66,7 +68,7 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 	}
 
 	function LoadLink() {
-		return RepeatOrdersPage::get_Repeat_order_link("load", $this->owner->UIDHash);
+		return RepeatOrdersPage::get_repeat_order_link("load", $this->owner->SessionID);
 	}
 
 	function FuturePast() {
@@ -138,7 +140,7 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 			if($oldOne && $this->owner->MemberID == $oldOne->MemberID) {
 				$this->owner->OrderDate = $oldOne->OrderDate;
 				$this->owner->OrderDateInteger = $oldOne->OrderDateInteger;
-				$this->owner->UIDHash = $oldOne->UIDHash;
+				$this->owner->SessionID = $oldOne->SessionID;
 				$this->owner->RepeatOrderID = $oldOne->RepeatOrderID;
 				//does thsi work????
 				$oldOne->delete();
@@ -148,14 +150,11 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 			}
 		}
 		Session::set("DraftOrderID", null);
-		if(!strlen($this->owner->UIDHash) == 32) {
-			$this->owner->UIDHash = substr(base_convert(md5(uniqid(mt_rand(), true)), 16, 36),0, 32);
+		if(!strlen($this->owner->SessionID) == 32) {
+			$this->owner->SessionID = substr(base_convert(md5(uniqid(mt_rand(), true)), 16, 36),0, 32);
 		}
 		$this->owner->OrderDateInteger = strtotime($this->owner->OrderDate);
 	}
 
-	function onAfterWrite() {
-		parent::onAfterWrite();
-	}
 
 }

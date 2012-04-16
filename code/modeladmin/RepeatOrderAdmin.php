@@ -1,6 +1,8 @@
 <?php
 
+class RepeatOrderAdmin extends ModelAdmin {
 
+}
 
 class RepeatOrderAdmin_CollectionController extends ModelAdmin_CollectionController{
 	//manages everything to do with overall control (e.g. search form, import, etc...)

@@ -8,17 +8,8 @@
 				<img src="cms/images/pagination/record-print.png" onclick="window.print();">
 			</div>
 
-			<div class="clear"><!-- --></div>
-
 			<div class="block">
 				<h3>Overview</h3>
-				<% if CanModify %>
-					<div class="Actions">
-						<input class="action" type="button" value="Amend Repeat order" onclick="window.location='$ModifyLink';" />
-						<input class="action" type="button" value="Cancel this Repeat Order" onclick="window.location='$CancelLink';" />
-						<input class="action" type="button" value="Done" onclick="window.location='$DoneLink';" />
-					</div>
-				<% end_if %>
 
 				<% include RepeatOrder_Content %>
 

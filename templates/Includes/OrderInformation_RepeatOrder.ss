@@ -70,7 +70,7 @@
 		</tr>
 		<tr class="summary">
 			<td scope="row" class="left">Planned Delivery Schedule</td>
-			<td>$DeliverySchedule</td>
+			<td><% if DeliverySchedule %>$DeliverySchedule<% else %>No planned deliveries<% end_if %></td>
 		</tr>
 	</tbody>
 </table>

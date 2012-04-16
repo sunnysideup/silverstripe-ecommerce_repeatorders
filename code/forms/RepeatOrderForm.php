@@ -3,29 +3,27 @@
 
 class RepeatOrderForm extends Form {
 
-	public function __construct($controller, $name, $orderID = null, $update = false) {
-
-		if($update) {
-			$RepeatOrder = DataObject::get_by_id('RepeatOrder', $orderID);
+	public function __construct($controller, $name, $repeatOrderID = 0) {
+		if($repeatOrderID) {
+			$repeatOrder = DataObject::get_by_id('RepeatOrder', $repeatOrderID);
 			//we have to make sure that order items are loaded into memory...
-			$items = $RepeatOrder->OrderItems();
-			$order = $controller->BlankOrder();
-			$RepeatOrderID = $RepeatOrder->ID;
+			$items = $repeatOrder->OrderItems();
 		}
 		else {
-			$order = $orderID ? DataObject::get_by_id('Order', $orderID) : $controller->BlankOrder();
+			$order = ShoppingCart::current_order();
 			$items = $order->Items();
-			$RepeatOrder = null;
-			$RepeatOrderID = 0;
+			$repeatOrder = null;
 		}
-		$items = $order->Items();
 		$fields = new FieldSet();
 		$fields->push(new HeaderField('AlternativesHeader', 'Products'));
-
 		$products = DataObject::get('Product');
-		$productsMap = $products->map('ID', 'Title', ' ');
-		if($RepeatOrder) {
-			//$fields->push($this->complexTableField($RepeatOrder));
+		$productsMap = $products->map('ID', 'Title');
+		foreach($productsMap as $id => $title){
+			if($product = DataObject::get_by_id("Product", $id)) {
+				if(!$product->canPurchase()) {
+					unset($productsMap[$id]);
+				}
+			}
 		}
 		if($items) {
 			foreach($items as $item) {
@@ -121,7 +119,7 @@ class RepeatOrderForm extends Form {
 				}
 			}
 
-			Director::redirect(RepeatOrdersPage::get_Repeat_order_link('view', $RepeatOrder->ID));
+			Director::redirect(RepeatOrdersPage::get_repeat_order_link('view', $RepeatOrder->ID));
 		}
 		else {
 			Director::redirectBack();
@@ -176,7 +174,7 @@ class RepeatOrderForm extends Form {
 			Session::set('RepeatOrder', null);
 		}
 
-		Director::redirect(RepeatOrdersPage::get_Repeat_order_link('view', $RepeatOrder->ID));
+		Director::redirect(RepeatOrdersPage::get_repeat_order_link('view', $RepeatOrder->ID));
 
 		return true;
 	}

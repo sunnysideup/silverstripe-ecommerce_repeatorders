@@ -6,10 +6,18 @@
 
 class RepeatOrder extends DataObject {
 
+
+	/**
+	 * Minimum of days in the future that the order is lodged.
+	 * @var int
+	 */
 	protected static $minimum_days_in_the_future = 1;
 		static function set_minimum_days_in_the_future($v) {self::$minimum_days_in_the_future = intval($v); }
 		static function get_minimum_days_in_the_future() {return self::$minimum_days_in_the_future;}
 
+	/**
+	 * Standard SS variable
+	 */
 	public static $db = array(
 		//TO DO: align with new version of e-commerce!
 		'Status' => "Enum('Pending, Active, MemberCancelled, AdminCancelled, Finished', 'Pending')",
@@ -23,21 +31,30 @@ class RepeatOrder extends DataObject {
 		"CreditCardOnFile" => "Boolean",
 		"PaymentNote" => "Text",
 		//computed values and notes
-		'Alternatives' => 'Text', //Serialized Array
-		'Items' => 'Text', //FOR SEARCH PURPOSES ONLY!
+		'ItemsForSearchPurposes' => 'Text', //FOR SEARCH PURPOSES ONLY!
 		'Notes' => 'Text'
-
 	);
 
+	/**
+	 * Standard SS variable
+	 */
 	public static $has_one = array(
-		'Member' => 'Member',
+		'Member' => 'Member'
 	);
 
+
+	/**
+	 * Standard SS variable
+	 */
 	public static $has_many = array(
 		'OrderItems' => 'RepeatOrder_OrderItem', //products & quanitites
 		'Orders' => 'Order'
 	);
 
+
+	/**
+	 * Standard SS variable
+	 */
 	public static $casting = array(
 		"OrderItemList" => "Text",
 		"FirstOrderDate" => "Date",
@@ -47,15 +64,20 @@ class RepeatOrder extends DataObject {
 		"DeliverySchedule" => "Text"
 	);
 
+
+	/**
+	 * Standard SS variable
+	 */
 	public static $searchable_fields = array(
-		"Member.Email" => "PartialMatchFilter",
-		"Member.Surname" => "PartialMatchFilter",
-		"Items" => "PartialMatchFilter",
+		"ItemsForSearchPurposes" => "PartialMatchFilter",
 		"Period",
 		"DeliveryDay",
 		"Status"
 	);
 
+	/**
+	 * Standard SS variable
+	 */
 	public static $summary_fields = array(
 		'ID' => 'Repeat Order ID',
 		'Member.Surname' => 'Surname',
@@ -68,12 +90,21 @@ class RepeatOrder extends DataObject {
 		'Status' => 'Status'
 	);
 
+	/**
+	 * Standard SS variable
+	 */
 	public static $default_sort = 'Created DESC';
 
+	/**
+	 * Standard SS variable
+	 */
 	public static $versioning = array(
 		'Stage'
 	);
 
+	/**
+	 * Standard SS variable
+	 */
 	public static $extensions = array(
 		"Versioned('Stage')"
 	);
@@ -83,27 +114,35 @@ class RepeatOrder extends DataObject {
 	 * @var array 'strtotime period' > 'nice name'
 	 */
 	protected static $period_fields = array(
+		'1 day' => 'Daily',
 		'1 week' => 'Weekly',
 		'2 weeks' => 'Fornightly',
-		'1 month' => 'Monthly',
+		'1 month' => 'Monthly'
 	);
+		static function set_period_fields($array) { self::$period_fields = $array;}
+		static function get_period_fields() { return self::$period_fields;}
+		static function default_period_key() {if($a = self::get_period_fields()) {foreach($a as $k => $v) {return $k;}}}
 
-	static function set_period_fields($array) { self::$period_fields = $array;}
-	static function get_period_fields() { return self::$period_fields;}
-	static function default_period_key() {if($a = self::get_period_fields()) {foreach($a as $k => $v) {return $k;}}}
 	/**
 	 * Should orderItems/orders call a write to update versions?
+	 * TODO: more documentation
 	 */
 	public static $update_versions = true;
 
+
+	/**
+	 * @var Array
+	 */
 	protected static $schedule = array();
 
+
+	/**
+	 * @array
+	 */
 	protected static $status_nice = array(
 		'Pending' => 'Pending',
 		'Active' => 'Active',
-		//TO DO: align with new version of e-commerce!
 		'MemberCancelled' => 'Pending Cancellation',
-		//TO DO: align with new version of e-commerce!
 		'AdminCancelled' => 'Cancelled',
 		'Finished' => 'Finished',
 	);
@@ -120,102 +159,98 @@ class RepeatOrder extends DataObject {
 		'Saturday',
 		'Sunday',
 	);
+		public static function set_delivery_days($a) {self::$delivery_days = $a;}
+		public static function get_delivery_days() {
+			$array = array();
+			$page = DataObject::get_one("RepeatOrdersPage");
+			if($page) {
+				$array = explode(",", $page->OrderDays);
+			}
+			if(count($array)) {
+				return $array;
+			}
+			else {
+				return self::$delivery_days;
+			}
+		}
+		public static function default_delivery_day_key() {
+			$a = self::get_delivery_days();
+			if(count($a)) {
+				foreach($a as $k => $v) {
+					return $k;
+				}
+			}
+		}
 
+	/**
+	 * @var array
+	 */
 	protected static $payment_methods = array(
 		'DirectCreditPayment' => 'Direct Credit (payment into bank account)'
 	);
-
-	/**
-	 * set the delivery days options
-	 * @param $days array of days
-	 * @return null
-	 */
-	public static function set_delivery_days($days = array()) {
-		self::$delivery_days = $days;
-	}
-
-	public static function get_delivery_days() {
-		$array = array();
-		$page = DataObject::get_one("RepeatOrdersPage");
-		if($page) {
-			$array = explode(",", $page->OrderDays);
-		}
-		if(count($array)) {
-			return $array;
-		}
-		else {
-			return self::$delivery_days;
-		}
-	}
-
-	public static function default_delivery_day_key() {
-		$a = self::get_delivery_days();
-		if(count($a)) {
+		public static function set_payment_methods($a) {self::$payment_methods = $a;}
+		public static function get_payment_methods() {return self::$payment_methods;}
+		public static function default_payment_method_key() {
+			$a = self::get_payment_methods();
 			foreach($a as $k => $v) {
 				return $k;
 			}
 		}
-	}
+
 	/**
-	 * @param $days array of days
-	 * @return null
+	 * Can it be edited, alias for canEdit
+	 * @return Boolean
 	 */
-	public static function set_payment_methods($payment_methods = array()) {
-		self::$payment_methods = $payment_methods;
+	public function CanModify($member = null) {
+		return $this->canEdit();
 	}
 
-	public static function get_payment_methods() {
-		return self::$payment_methods;
-	}
-
-	public static function default_payment_method_key() {
-		$a = self::get_payment_methods();
-		foreach($a as $k => $v) {
-			return $k;
-		}
-	}
-
-	public function CanModify() {
-		if(in_array($this->Status, array('Pending', 'Active'))) {
-			return true;
-		}
-		else return false;
-	}
-
+	/**
+	 * Link for viewing
+	 * @return String
+	 */
 	public function Link() {
-		return RepeatOrdersPage::get_Repeat_order_link('view', $this->ID);
+		return RepeatOrdersPage::get_repeat_order_link('view', $this->ID);
 	}
 
-	public function Period() {
-		$a = self::get_period_fields();
-		if(isset($a[$this->Period])) { return $a[$this->Period];}
-	}
-
+	/**
+	 * Link for editing
+	 * @return String
+	 */
 	public function ModifyLink() {
-		return RepeatOrdersPage::get_Repeat_order_link('modify', $this->ID);
+		return RepeatOrdersPage::get_repeat_order_link('modify', $this->ID);
 	}
 
+
+	/**
+	 * Link for cancelling
+	 * @return String
+	 */
 	public function CancelLink() {
-		return RepeatOrdersPage::get_Repeat_order_link('cancel', $this->ID);
+		return RepeatOrdersPage::get_repeat_order_link('cancel', $this->ID);
 	}
 
+	/**
+	 * Link for end of view / edit / cancel session
+	 * @return String
+	 */
 	public function DoneLink() {
 		$page = DataObject::get_one("RepeatOrdersPage");
-		if($page) {
-			return $page->Link();
+		if(!$page) {
+			$page = DataObject::get_one("CheckoutPage");
+			if(!$page) {
+				$page = DataObject::get_one("Page");
+			}
 		}
-		$page = DataObject::get_one("Page", "URLSegment 'home'");
 		return $page->Link();
 	}
 
-	public function OutRepeatAutomaticallyCreatedOrders() {
+	public function AutomaticallyCreatedOrders() {
 		$orders = DataObject::get("Order", "RepeatOrderID = ".$this->ID, "OrderDate ASC");
 		$dos = new DataObjectSet();
 		if($orders) {
 			foreach($orders as $order) {
-				if(!$order->Completed()) {
-					$dos->push($order);
-				}
+				$dos->push($order);
 			}
 		}
 		return $dos;
@@ -230,84 +265,67 @@ class RepeatOrder extends DataObject {
 		Versioned::reading_stage('Stage');
 
 		set_time_limit(0); //might take a while with lots of orders
-
-
 		//get all Repeat orders
-		$RepeatOrders = DataObject::get('RepeatOrder', 'Status = \'Active\'');
-
+		$repeatOrders = DataObject::get('RepeatOrder', 'Status = \'Active\'');
+		//TODO: why this update version stuff?
 		RepeatOrder::$update_versions = false;
-		if($RepeatOrders) {
-			foreach($RepeatOrders as $RepeatOrder) {
-				$RepeatOrder->addAutomaticallyCreatedOrders();
+		if($repeatOrders) {
+			foreach($repeatOrders as $repeatOrder) {
+				$repeatOrder->addAutomaticallyCreatedOrders();
 			}
 		}
 		RepeatOrder::$update_versions = true;
 	}
 
-
-
 	public function addAutomaticallyCreatedOrders() {
-		$bt = defined('DB::USE_ANSI_SQL') ? "\"" : "`";
 		//current time + period is less than LastCreated and less then end
 		$currentTime = (strtotime(date('Y-m-d'))-1);
 		$firstOrderDate = $this->FirstOrderDate();
 		if($firstOrderDate) {
 			$startTime = strtotime($firstOrderDate->format("Y-m-d"));
 		}
-		$endTime = strtotime($this->End);
 		if(!$firstOrderDate) {
 			$this->Status = 'Pending';
 			$this->write();
+			return;
 		}
-		elseif($currentTime > $endTime && $this->Status != "Finished") {
-			$this->Status = 'Finished';
-			$this->write();
-		}
-		elseif($startTime < $currentTime) {
-			$a = $this->workOutSchedule();
-			if(count($a)) {
-				foreach($a as $orderDateInteger => $orderDateLong) {
-					if($obj = DataObject::get_one("Order", "{$bt}OrderDateInteger{$bt} = ".$orderDateInteger." AND RepeatOrderID = ".$this->ID)) {
-						//do nothing
-					}
-					else {
-						$this->createAutomaticallyCreatedOrder($orderDateInteger, false);
+		else {
+			$endTime = strtotime($this->End()->format("Y-m-d"));
+			if($currentTime > $endTime) {
+				$this->Status = 'Finished';
+				$this->write();
+				return;
+			}
+			elseif($startTime < $currentTime) {
+				$a = $this->workOutSchedule();
+				if(count($a)) {
+					foreach($a as $orderDateInteger => $orderDateLong) {
+						if($order = DataObject::get_one("Order", "OrderDateInteger = '".$orderDateInteger."' AND RepeatOrderID = ".$this->ID)) {
+							//do nothing
+						}
+						elseif(!$this->MemberID){
+							USER_ERROR("Can not create Order without member linked in RepeatOrder #".$this->ID, E_USER_ERROR);
+						}
+						elseif(!$orderDateInteger){
+							USER_ERROR("Can not create Order without date for in RepeatOrder #".$this->ID, E_USER_ERROR);
+						}
+						else {
+							$order = new Order();
+							$order->OrderDate = date("Y-m-d", $orderDateInteger);
+							$order->RepeatOrderID = $this->ID;
+							$order->MemberID = $this->MemberID;
+							$order->write();
+							$order->submit();
+						}
+						return $order->ID;
 					}
 				}
 			}
 		}
 	}
 
-	/**
-	 * Create a new AutomaticallyCreatedOrder from the RepeatOrder
-	 * @return null
-	 */
-	public function createAutomaticallyCreatedOrder($orderDateInteger, $redirect = true) {
-		//create AutomaticallyCreatedOrder order
-		if($order = DataObject::get_one("Order", "OrderDateInteger = '".$orderDateInteger."' AND RepeatOrderID = ".$this->ID)) {
-			//do nothing
-		}
-		elseif(!$this->MemberID){
-			USER_ERROR("Can not create Order without member linked in RepeatOrder #".$this->ID, E_USER_ERROR);
-		}
-		elseif(!$orderDateInteger){
-			USER_ERROR("Can not create Order without date for in RepeatOrder #".$this->ID, E_USER_ERROR);
-		}
-		else {
-			$order = new Order();
-			$order->OrderDate = date("Y-m-d", $orderDateInteger);
-			$order->RepeatOrderID = $this->ID;
-			$order->MemberID = $this->MemberID;
-			$order->write();
-		}
 
-		if($redirect) Director::redirect($order->Link());
-		return $order->ID;
-	}
-
-
-
-	/**
+/**
 	 * Create a RepeatOrder from a regular Order and its Order Items
 	 * @param Order $Order
 	 * @param $params params
@@ -315,15 +333,12 @@ class RepeatOrder extends DataObject {
 	 */
 	public static function createFromOrder(Order $Order, $params = array()) {
 		Versioned::reading_stage('Stage');
-
 		$RepeatOrder = new RepeatOrder();
 		$RepeatOrder->Status = 'Pending';
 		$RepeatOrder->MemberID = $Order->MemberID;
 		$RepeatOrder->update($params);
 		$RepeatOrder->write();
-
 		$orderItems = $Order->Items();
-
 		if($orderItems) {
 			foreach($orderItems as $orderItem) {
 				$RepeatOrderItem = new RepeatOrder_OrderItem();
@@ -334,10 +349,7 @@ class RepeatOrder extends DataObject {
 				$RepeatOrderItem->write();
 			}
 		}
-
 		$RepeatOrder->write();
-
-
 		return $RepeatOrder;
 	}
 
@@ -346,44 +358,6 @@ class RepeatOrder extends DataObject {
 
 
 //================================================================================================================================================================================
-
-	public function TableAlternatives() {
-		$alternatives = unserialize($this->Alternatives);
-
-		$products = new DataObjectSet();
-
-		if(is_array($alternatives)) {
-			foreach($alternatives as $id => $alternative) {
-				$product = DataObject::get_by_id('Product', $id);
-
-				$product->Alternatives = new DataObjectSet();
-
-				if(is_array($alternative)) {
-					foreach($alternative as $id) {
-						if($id) {
-							$alternativeProduct = DataObject::get_by_id('Product', $id);
-
-							if($alternativeProduct) $product->Alternatives->push($alternativeProduct);
-						}
-					}
-				}
-
-				$products->push($product);
-			}
-		}
-
-		return $products;
-	}
-
-
-	public function AlternativesPerProduct($productID) {
-		$dos = $this->TableAlternatives();
-		foreach($dos as $do) {
-			if($do->ID = $productID) {
-				return $do->Alternatives;
-			}
-		}
-	}
 
 	public function TableDeliveryDay() {
 		return $this->DeliveryDay;
@@ -425,7 +399,6 @@ class RepeatOrder extends DataObject {
 		$fields = new FieldSet(
 			new TabSet('Root',
 				new Tab('Main',
-					new AutocompleteTextField('Email', 'Email (Auto complete)', 'admin/security/autocomplete/Email'),
 					new ListboxField('PaymentMethod', 'Payment Method', self::get_payment_methods(), null, count(self::get_payment_methods())),
 					new DateField('Start', 'Start'),
 					new DateField('End', 'End (Optional)'),
@@ -445,7 +418,6 @@ class RepeatOrder extends DataObject {
 				)
 			)
 		);
-
 		return $fields;
 	}
 
@@ -524,33 +496,6 @@ HTML
 				)
 			)
 		);
-
-		$alternatives = unserialize($this->Alternatives);
-		$orderItems = $this->OrderItems();
-
-		$products = DataObject::get('Product');
-		$productsMap = array('');
-		$productsMap = $products->map('ID', 'Title', ' ');
-
-		if($orderItems) {
-			foreach($orderItems as $orderItem) {
-				$value = isset($alternatives[$orderItem->ProductID]) ? $alternatives[$orderItem->ProductID] : null;
-				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][0]', $orderItem->BuyableTitle(), $productsMap, $value[0]));
-				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][1]', '', $productsMap, $value[1]));
-				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][2]', '', $productsMap, $value[2]));
-				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][3]', '', $productsMap, $value[3]));
-				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][4]', '', $productsMap, $value[4]));
-			}
-		}
-
-		/*
-		to do: MAKE WORK
-		$fields->addFieldToTab('Root', new Tab(
-			'HistoryOfChanges',
-			new HeaderField("HistoryTableHeader", "List of updates to the Repeat order"),
-			$this->getCMSHistoryTable()
-		));
-		*/
 		return $fields;
 	}
 
@@ -576,25 +521,6 @@ HTML
 				)
 			)
 		);
-
-		$alternatives = unserialize($this->Alternatives);
-		$orderItems = $this->getVersionedComponents('OrderItems');
-
-		$products = DataObject::get('Product');
-		$productsMap = array('');
-		$productsMap = $products->map('ID', 'Title', ' ');
-
-		if($orderItems) {
-			foreach($orderItems as $orderItem) {
-				$value = isset($alternatives[$orderItem->ProductID]) ? $alternatives[$orderItem->ProductID] : null;
-				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][0]', $orderItem->BuyableTitle(), $productsMap, $value[0]));
-				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][1]', '', $productsMap, $value[1]));
-				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][2]', '', $productsMap, $value[2]));
-				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][3]', '', $productsMap, $value[3]));
-				$fields->addFieldToTab('Root.Alternatives', new DropdownField('_Alternatives['.$orderItem->ProductID.'][4]', '', $productsMap, $value[4]));
-			}
-		}
-
 		return $fields;
 	}
 
@@ -733,26 +659,9 @@ HTML
 			$this->End = date('Y-m-d', $startTime + ( 7 * 60 * 60 * 24));
 		}
 
-		$this->Items = $this->OrderItemList();
+		$this->ItemsForSearchPurposes = $this->OrderItemList();
 		if(isset($_REQUEST['DeliveryDay'])) {
 			$this->DeliveryDay = $_REQUEST['DeliveryDay'];
-		}
-
-		if(isset($_REQUEST['_Alternatives'])) {
-			foreach($_REQUEST['_Alternatives'] as $key => $array) {
-				for($i = 0; $i < 5; $i++) {
-					$item = $_REQUEST["_Alternatives"][$key][$i];
-					if($item > 0 && $i > 0) {
-						for($j = ($i - 1); $j >= 0; $j--) {
-							$previousItem = $_REQUEST["_Alternatives"][$key][$j];
-							if($item == $previousItem) {
-								$_REQUEST["_Alternatives"][$key][$i]  = 0;
-							}
-						}
-					}
-				}
-			}
-			$this->Alternatives = serialize($_REQUEST['_Alternatives']);
 		}
 
 		if($this->ID == false) {
@@ -901,7 +810,7 @@ HTML
 	protected function workOutSchedule() {
 		if(!isset(self::$schedule[$this->ID])) {
 			$a = array();
-			if($this->Period && $this->End && $this->Start && $this->DeliveryDay) {
+			if($this->Period && $this->End && $this->Start && $this->DeliveryDay && $this->Status == "Active") {
 				$startTime = strtotime($this->Start);
 				if(Date("l", $startTime) == $this->DeliveryDay) {
 					$firstTime = $startTime;
@@ -928,6 +837,36 @@ HTML
 		return self::$schedule[$this->ID];
 	}
 
+
+	function canView($member = null) {
+		$memberID = Member::currentUser();
+		if($member->IsShopAdmin()) {
+			return true;
+		}
+		if($this->MemberID == $member->ID) {
+			return true;
+		}
+	}
+
+	function canEdit($member = null) {
+		if(in_array($this->Status, array('Pending', 'Active'))) {
+			return $this->canView($member);
+		}
+		else {
+			return false;
+		}
+	}
+
+	function canDelete($member = null) {
+		if(in_array($this->Status, array('Pending'))) {
+			return $this->canView($member);
+		}
+		else {
+			return false;
+		}
+	}
+
+
 }
 
 class RepeatOrder_OrderItem extends DataObject {
@@ -939,7 +878,12 @@ class RepeatOrder_OrderItem extends DataObject {
 
 	public static $has_one = array(
 		'Product' => 'Product',
-		'Order' => 'RepeatOrder'
+		'Order' => 'RepeatOrder',
+		'Alternative1' => 'Product',
+		'Alternative2' => 'Product',
+		'Alternative3' => 'Product',
+		'Alternative4' => 'Product',
+		'Alternative5' => 'Product'
 	);
 
 	public static $versioning = array(
@@ -1002,4 +946,5 @@ class RepeatOrder_OrderItem extends DataObject {
 			}
 		}
 	}
+
 }
