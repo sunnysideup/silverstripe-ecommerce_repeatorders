@@ -221,7 +221,8 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller {
 	 * @return HTML
 	 */
 	function admin() {
-		if(!Permission::check("ADMIN") && !Permission::check("SHOPADMIN")) {
+		$shopAdminCode = EcommerceConfig::get("EcommerceRole", "admin_permission_code");
+		if(!Permission::check("ADMIN") && !Permission::check($shopAdminCode)) {
 			return Security::permissionFailure($this, _t('OrderReport.PERMISSIONFAILURE', 'Sorry you do not have permission for this function. Please login as an Adminstrator'));
 		}
 		RepeatOrder::create_automatically_created_orders();

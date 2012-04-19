@@ -111,6 +111,7 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 						if($product) {
 							$newProductOrderItem = new Product_OrderItem();
 							$newProductOrderItem->BuyableID = $orderItem->ProductID;
+							$newProductOrderItem->BuyableClassName = $orderItem->ClassName;
 							ShoppingCart::add_new_item(
 								$newProductOrderItem,
 								$orderItem->Quantity
