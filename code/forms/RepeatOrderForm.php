@@ -4,189 +4,214 @@
 class RepeatOrderForm extends Form {
 
 	public function __construct($controller, $name, $repeatOrderID = 0) {
+		//create vs edit
 		if($repeatOrderID) {
+			$order = null;
 			$repeatOrder = DataObject::get_by_id('RepeatOrder', $repeatOrderID);
-			//we have to make sure that order items are loaded into memory...
 			$items = $repeatOrder->OrderItems();
+
 		}
 		else {
 			$order = ShoppingCart::current_order();
-			$items = $order->Items();
 			$repeatOrder = null;
+			$items = $order->Items();
 		}
+
+		//build fields
 		$fields = new FieldSet();
-		$fields->push(new HeaderField('AlternativesHeader', 'Products'));
-		$products = DataObject::get('Product');
-		$productsMap = $products->map('ID', 'Title');
-		foreach($productsMap as $id => $title){
-			if($product = DataObject::get_by_id("Product", $id)) {
-				if(!$product->canPurchase()) {
-					unset($productsMap[$id]);
+
+		//products!
+		if($items) {
+			$fields->push(new HeaderField('ProductsHeader', 'Products'));
+			$products = DataObject::get('Product', "\"AllowPurchase\" = 1");
+			$productsMap = $products->map('ID', 'Title');
+			$this->array_unshift_assoc($productsMap, 0, "--- Please select ---");
+			foreach($productsMap as $id => $title){
+				if($product = DataObject::get_by_id("Product", $id)) {
+					if(!$product->canPurchase()) {
+						unset($productsMap[$id]);
+					}
+				}
+			}
+			$j = 0;
+			foreach($items as $key => $item) {
+				$j++;
+				$alternativeItemsMap = $productsMap;
+				$defaultProductID =  $item->ProductID ? $item->ProductID : $item->BuyableID;
+				$itemID = $defaultProductID;
+				unset($alternativeItemsMap[$defaultProductID]);
+				$fields->push(new DropdownField('Product[ID]['.$itemID.']', "Preferred Product #$j", $productsMap, $defaultProductID));
+				$fields->push(new NumericField('Product[Quantity]['.$itemID.']', " ... quantity", $item->Quantity));
+				for($i = 1; $i < 6; $i++) {
+					$alternativeField = "Alternative".$i."ID";
+					$fields->push(new DropdownField('Product['.$alternativeField.']['.$itemID.']', " ... alternative $i", $alternativeItemsMap, (isset($item->$alternativeField) ? $item->$alternativeField : 0)));
 				}
 			}
 		}
-		if($items) {
-			foreach($items as $item) {
-				$fields->push(new DropdownField('Product[ID]['.$item->getProductID().']', "Preferred Product", $productsMap, $item->getProductID()));
-				$fields->push(new NumericField('Product[Quantity]['.$item->getProductID().']', " ... quantity", $item->Quantity));
-				$fields->push(new DropdownField('_Alternatives['.$item->getProductID().'][0]', " ... alternative 1", $productsMap));
-				$fields->push(new DropdownField('_Alternatives['.$item->getProductID().'][1]', " ... alternative 2", $productsMap));
-				$fields->push(new DropdownField('_Alternatives['.$item->getProductID().'][2]', " ... alternative 3", $productsMap));
-				$fields->push(new DropdownField('_Alternatives['.$item->getProductID().'][3]', " ... alternative 4", $productsMap));
-				$fields->push(new DropdownField('_Alternatives['.$item->getProductID().'][4]', " ... alternative 5", $productsMap));
-			}
-		}
 
+		//other details
 		$fields->push(new HeaderField('DetailsHeader', 'Repeat Order Details'));
 		$fields->push(new ListboxField('PaymentMethod', 'Payment Method', RepeatOrder::get_payment_methods(), null, count(RepeatOrder::get_payment_methods())));
-		$fields->push(new DateField('Start', 'Start'));
-		$fields->push(new DateField('End', 'End'));
-		$fields->push(new ListboxField('Period', 'Period', RepeatOrder::get_period_fields(), null, count(RepeatOrder::get_period_fields())));
-
-		$fields->push(new ListboxField(
-			'DeliveryDay',
-			'Delivery day:',
-			$source = array_combine(
-				RepeatOrder::get_delivery_days(),
-				RepeatOrder::get_delivery_days()
-			),
-			null,
-			count(RepeatOrder::get_delivery_days()),
-			false
-		));
-
+		$startField = new DateField ('Start', 'Start Date');
+		$startField->setConfig ('showcalendar', true);
+		$fields->push($startField);
+		$endField = new DateField ('End', 'End Date');
+		$endField->setConfig ('showcalendar', true);
+		$fields->push($endField);
+		$fields->push(
+			new ListboxField(
+				'Period',
+				'Period',
+				RepeatOrder::get_period_fields(),
+				null,
+				count(RepeatOrder::get_period_fields())
+			)
+		);
+		$fields->push(
+			new ListboxField(
+				'DeliveryDay',
+				'Delivery day',
+				$source = array_combine(
+					RepeatOrder::get_delivery_days(),
+					RepeatOrder::get_delivery_days()
+				),
+				null,
+				count(RepeatOrder::get_delivery_days()),
+				false
+			)
+		);
 		$fields->push(new TextareaField('Notes', 'Notes'));
-		if($order->ID) $fields->push(new HiddenField('OrderID', 'OrderID', $order->ID));
-		if($RepeatOrder) $fields->push(new HiddenField('RepeatOrderID', 'RepeatOrderID', $RepeatOrder->ID));
 
+		//hidden field
+		if(isset($order->ID)) {
+			$fields->push(new HiddenField('OrderID', 'OrderID', $order->ID));
+		}
+		if($repeatOrder) {
+			$fields->push(new HiddenField('RepeatOrderID', 'RepeatOrderID', $repeatOrder->ID));
+		}
+
+		//actions
 		$actions = new FieldSet();
-
-		if($RepeatOrder) {
+		if($repeatOrder) {
 			$actions->push(new FormAction('doSave', 'Save'));
 		}
 		else {
 			$actions->push(new FormAction('doCreate', 'Create'));
 		}
 
-		$required["Start"] = 'Start';
-		$required["End"] = 'End';
-		$required["Period"] = 'Period';
-		$required["DeliveryDay"] = 'DeliveryDay';
+		//required fields
+		$requiredArray = array('Start', 'End', 'Period', 'DeliveryDay');
+		$requiredFields = new RequiredFields($requiredArray);
 
-		$requiredFields = new RequiredFields($required);
-
+		//make form
 		parent::__construct($controller, $name, $fields, $actions, $requiredFields);
 
-		if($RepeatOrder) {
+		//load data
+		if($repeatOrder) {
 			$this->loadDataFrom(array(
-				'Start' => $RepeatOrder->Start,
-				'End' => $RepeatOrder->End,
-				'Period' => $RepeatOrder->Period,
-				'Notes' => $RepeatOrder->Notes,
-				'DeliveryDay' => $RepeatOrder->DeliveryDay,
-				'PaymentMethod' => $RepeatOrder->PaymentMethod,
-				'_Alternatives' => unserialize($RepeatOrder->Alternatives),
+				'Start' => $repeatOrder->Start,
+				'End' => $repeatOrder->End,
+				'Period' => $repeatOrder->Period,
+				'Notes' => $repeatOrder->Notes,
+				'DeliveryDay' => $repeatOrder->DeliveryDay,
+				'PaymentMethod' => $repeatOrder->PaymentMethod,
 			));
 		}
 	}
 
-	/**
-	 * Create a new stadning
-	 */
 	public function doCreate($data, $form, $request) {
-		$memberID = Member::currentUserID();
-
-		if(isset($data['OrderID'])) {
-			$order = DataObject::get_one('Order', 'Order.ID = \''.$data['OrderID'].'\' AND MemberID = \''.$memberID.'\'');
-		}
-		else {
-			$order = $form->Controller()->BlankOrder();
-		}
-		if($order) {
-			$params = $this->dataCheck($data);
-			$RepeatOrder = RepeatOrder::createFromOrder($order, $params);
-			$orderItems = $RepeatOrder->OrderItems();
-			if($orderItems) {
-				foreach($orderItems as $orderItem) {
-					if(isset($data["Product"]["ID"][$orderItem->ProductID])) {$newProductID = $data["Product"]["ID"][$orderItem->ProductID];}
-					if(isset($data["Product"]["Quantity"][$orderItem->ProductID])) {$newQuantity = $data["Product"]["Quantity"][$orderItem->ProductID];}
-					$change = false;
-					if($newProductID != $orderItem->ProductID && $newProductID) {$orderItem->ProductID = $newProductID; $change = true;}
-					if($newQuantity != $orderItem->ProductID && ($newQuantity || $newQuantity === 0)) {$orderItem->Quantity = $newQuantity; $change = true;}
-					if($change) {
-						$orderItem->write();
-					}
-				}
-			}
-
-			Director::redirect(RepeatOrdersPage::get_repeat_order_link('view', $RepeatOrder->ID));
-		}
-		else {
-			Director::redirectBack();
-		}
-
-		return true;
+		return $this->doSave($data, $form, $request);
 	}
 
 	/**
 	 * Save the changes
 	 */
 	public function doSave($data, $form, $request) {
+		$data = Convert::raw2sql($data);
 		Versioned::reading_stage('Stage');
-
-		$memberID = Member::currentUserID();
-
-		$RepeatOrder = DataObject::get_one('RepeatOrder', 'RepeatOrder.ID = \''.$data['RepeatOrderID'].'\' AND MemberID = \''.$memberID.'\'');
-
-		if($RepeatOrder) {
-			$params = array();
-
-			//stop versioning while we make alterations
-			RepeatOrder::$update_versions = false;
-
-			$orderItems = $RepeatOrder->OrderItems();
-
-			if($orderItems) {
-				foreach($orderItems as $orderItem) {
-					$orderItem->delete();
-				}
-			}
-			$orderItems = $form->Controller()->BlankOrder()->Items();
-			if($orderItems) {
-				foreach($orderItems as $orderItem) {
-					$RepeatOrderItem = new RepeatOrder_OrderItem();
-					$RepeatOrderItem->OrderID = $RepeatOrder->ID;
-					$RepeatOrderItem->OrderVersion = $RepeatOrder->Version;
-					$RepeatOrderItem->ProductID = $data["Product"]["ID"][$orderItem->ProductID];
-					$RepeatOrderItem->Quantity = $data["Product"]["Quantity"][$orderItem->ProductID];
-					$RepeatOrderItem->write();
-				}
-			}
-
-			//start versioning again
-			RepeatOrder::$update_versions = true;
-
-			$params = $this->dataCheck($data);
-
-			$RepeatOrder->update($params);
-			$RepeatOrder->Status = 'Pending';
-			$RepeatOrder->write();
-			Session::set('RepeatOrder', null);
+		$member = Member::currentUser();
+		if(!$member) {
+			$form->sessionMessage('Could not find customer details.', 'bad');
+			Director::redirectBack();
+			return false;
 		}
-
-		Director::redirect(RepeatOrdersPage::get_repeat_order_link('view', $RepeatOrder->ID));
-
+		if($member->IsShopAdmin()) {
+			$form->sessionMessage('Repeat orders can not be created by Shop Administrators.  Only customers can create repeat orders.', 'bad');
+			Director::redirectBack();
+			return false;
+		}
+		if(isset($data['OrderID'])) {
+			$order = DataObject::get_one('Order', 'Order.ID = \''.$data['OrderID'].'\' AND MemberID = \''.$member->ID.'\'');
+			if($order) {
+				$repeatOrder = RepeatOrder::create_repeat_order_from_order($order);
+			}
+			else {
+				$form->sessionMessage('Could not find originating order.', 'bad');
+				Director::redirectBack();
+				return false;
+			}
+		}
+		else {
+			$repeatOrderID = intval($data['RepeatOrderID']);
+			$repeatOrder = DataObject::get_one('RepeatOrder', 'RepeatOrder.ID = \''.$repeatOrderID.'\' AND MemberID = \''.$member->ID.'\'');
+		}
+		if($repeatOrder) {
+			if($repeatOrderItems = $repeatOrder->OrderItems()) {
+				foreach($repeatOrderItems as $repeatOrderItem) {
+					$repeatOrderItem->ProductID = $data["Product"]["ID"][$repeatOrderItem->ProductID];
+					$repeatOrderItem->Quantity = $data["Product"]["Quantity"][$repeatOrderItem->ProductID];
+					for($i = 1; $i < 6; $i++) {
+						$alternativeField = "Alternative".$i."ID";
+						$repeatOrderItem->$alternativeField = $data["Product"][$alternativeField][$repeatOrderItem->ProductID];
+					}
+					$repeatOrderItem->write();
+				}
+			}
+			$params = array();
+			if(isset($data['Start']) && strtotime($data['Start']) > strtotime(Date("Y-m-d"))) {
+				$params['Start'] = $data['Start'];
+			}
+			else {
+				$params["Start"] = Date("Y-m-d");
+			}
+			if(isset($data['End'])  && strtotime($data['Start']) > strtotime($params["Start"])) {
+				$params['End'] = $data['End'];
+			}
+			else {
+				$params["End"] = Date("Y-m-d", strtotime("+1 year"));
+			}
+			if(isset($data['Period'])) {
+				$params['Period'] = $data['Period'];
+			}
+			else {
+				$data['Period'] = RepeatOrder::default_period_key();
+			}
+			if(isset($data['DeliveryDay'])) {
+				$params['DeliveryDay'] = $data['DeliveryDay'];
+			}
+			else {
+				$data['DeliveryDay'] = RepeatOrder::default_delivery_day_key();
+			}
+			if(isset($data['PaymentMethod'])) {
+				$params['PaymentMethod'] = $data['PaymentMethod'];
+			}
+			else {
+				$data['PaymentMethod'] = RepeatOrder::default_payment_method_key();
+			}
+			if(isset($data['Notes'])) {
+				$params['Notes'] = $data['Notes'];
+			}
+			$repeatOrder->update($params);
+			$repeatOrder->Status = 'Pending';
+			$repeatOrder->write();
+		}
+		else {
+			$form->sessionMessage('Could not find repeat order.', 'bad');
+			Director::redirectBack();
+			return false;
+		}
+		Director::redirect(RepeatOrdersPage::get_repeat_order_link('view', $repeatOrder->ID));
 		return true;
-	}
-
-	protected function dataCheck($data) {
-		if(isset($data['Start'])) {$params['Start'] = $data['Start'];} else {$params["Start"] = Date("Y-m-d");}
-		if(isset($data['End'])) {$params['End'] = $data['End'];} else {$params["End"] = Date("Y-m-d", strtotime("+1 year"));}
-		if(isset($data['Period'])) {$params['Period'] = $data['Period'];} else {$data['Period'] = RepeatOrder::default_period_key();}
-		if(isset($data['DeliveryDay'])) {$params['DeliveryDay'] = $data['DeliveryDay'];} else {$data['DeliveryDay'] = RepeatOrder::default_delivery_day_key();}
-		if(isset($data['PaymentMethod'])) {$params['PaymentMethod'] = $data['PaymentMethod'];} else {$data['PaymentMethod'] = RepeatOrder::default_payment_method_key();}
-		if(isset($data['Notes'])) $params['Notes'] = $data['Notes'];
-		return Convert::raw2sql($params);
 	}
 
 	function complexTableField($controller) {
@@ -202,5 +227,13 @@ class RepeatOrderForm extends Form {
 		);
 		return $t;
 	}
+
+	private function array_unshift_assoc(&$arr, $key, $val) {
+		$arr = array_reverse($arr, true);
+		$arr[$key] = $val;
+		$arr = array_reverse($arr, true);
+		return $arr;
+	}
+
 
 }

@@ -87,16 +87,16 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 
 	function CompleteOrder() {
 		ShoppingCart::clear();
-		if($RepeatOrder = $this->owner->RepeatOrder()) {
+		if($repeatOrder = $this->owner->RepeatOrder()) {
 			// Set the items from the cart into the order
-			if($RepeatOrder->OrderItems()) {
-				foreach($RepeatOrder->OrderItems() as $orderItem) {
+			if($repeatOrder->OrderItems()) {
+				foreach($repeatOrder->OrderItems() as $orderItem) {
 					$product = DataObject::get_by_id('Product', $orderItem->ProductID);
 					if($product) {
 						if(class_exists("ProductStockCalculatedQuantity")) {
 							$numberAvailable = ProductStockCalculatedQuantity::get_quantity_by_product_id($product->ID);
 							if($numberAvailable < $orderItem->Quantity) {
-								$dos = $RepeatOrder->AlternativesPerProduct($product->ID);
+								$dos = $orderItem->AlternativesPerProduct();
 								$product = null;
 								if($dos) {
 									foreach($dos as $do) {

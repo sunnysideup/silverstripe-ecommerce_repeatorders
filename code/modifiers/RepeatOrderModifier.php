@@ -103,6 +103,18 @@ HTML
 		return "";
 	}
 
+	/**
+	 * retursn and array like this: array(Title => "bla", Link => "/doit/now/");
+	 * @return Array
+	 */
+	public function PostSubmitAction() {
+		if(Member::currentUser()) {
+			return array(
+				"Title" => _t("RepeatOrder.CREATEREPEATEORDER", "Turn this Order into a Repeat Order"),
+				"Link" => RepeatOrdersPage::get_repeat_order_link("createorder", $this->Order()->ID)
+			);
+		}
+	}
 }
 
 

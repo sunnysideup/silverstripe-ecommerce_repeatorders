@@ -42,7 +42,7 @@ class RepeatOrdersPage extends AccountPage {
 		if(!$page) {
 			user_error('No RepeatOrderPage was found. Please create one in the CMS!', E_USER_ERROR);
 		}
-		return $page->Link($action, $repeatOrderID);
+		return $page->Link($action)."/".$repeatOrderID."/";
 	}
 
 	/**
@@ -76,7 +76,11 @@ class RepeatOrdersPage extends AccountPage {
 	 */
 	public function RepeatOrders() {
 		$memberID = Member::currentUserID();
-		return DataObject::get('RepeatOrder', "MemberID = '$memberID'", "\"Created\" DESC");
+		return DataObject::get(
+			'RepeatOrder',
+			"\"MemberID\" = '$memberID' AND \"Status\" NOT IN ('MemberCancelled', 'AdminCancelled')",
+			"\"Created\" DESC"
+		);
 	}
 
 	/**
@@ -137,7 +141,14 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller {
 	}
 
 	function createorder($request){
-		$order = ShoppingCart::current_order();
+		$orderID = intval($request->param("ID"));
+		$order = null;
+		if($orderID) {
+			$order = Order::get_by_id_if_can_view($orderID);
+		}
+		if(!$order) {
+			$order = ShoppingCart::current_order();
+		}
 		//TODO: move items to order
 		$params = array(
 			'Order' => $order,
@@ -166,8 +177,14 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller {
 			$repeatOrder = DataObject::get_one('RepeatOrder', "RepeatOrder.ID = '$repeatOrderID'");
 			if($repeatOrder && $repeatOrder->canView()) {
 				$params = array(
-					'RepeatOrder' => $order,
+					'RepeatOrder' => $repeatOrder,
 					'Message' => "Please review order below."
+				);
+			}
+			else {
+				$params = array(
+					'RepeatOrder' => null,
+					'Message' => "You can not view this Order."
 				);
 			}
 		}
@@ -202,12 +219,18 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller {
 			if(isset($_REQUEST['action_doCreate']) && isset($_REQUEST['repeatOrderID'])) {
 				$repeatOrderID = $_REQUEST['repeatOrderID'];
 			}
+			if($action == 'createorder') {
+				$repeatOrderID = 0;
+			}
 			return new RepeatOrderForm($this, 'RepeatOrderForm', $repeatOrderID, false);
 		}
 		else if($action == 'update' || isset($_REQUEST['action_doSave'])) {
 			if(isset($_REQUEST['action_doSave']) && isset($_REQUEST['RepeatOrderID'])) {
 				$repeatOrderID = $_REQUEST['RepeatOrderID'];
 			}
+			return new RepeatOrderForm($this, 'RepeatOrderForm', $repeatOrderID, true);
+		}
+		elseif($repeatOrderID) {
 			return new RepeatOrderForm($this, 'RepeatOrderForm', $repeatOrderID, true);
 		}
 		else {

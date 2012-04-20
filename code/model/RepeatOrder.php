@@ -95,19 +95,6 @@ class RepeatOrder extends DataObject {
 	 */
 	public static $default_sort = 'Created DESC';
 
-	/**
-	 * Standard SS variable
-	 */
-	public static $versioning = array(
-		'Stage'
-	);
-
-	/**
-	 * Standard SS variable
-	 */
-	public static $extensions = array(
-		"Versioned('Stage')"
-	);
 
 	/**
 	 * Dropdown options for Period
@@ -262,19 +249,15 @@ class RepeatOrder extends DataObject {
 	 * Create due draft orders
 	 */
 	public static function create_automatically_created_orders() {
-		Versioned::reading_stage('Stage');
-
 		set_time_limit(0); //might take a while with lots of orders
 		//get all Repeat orders
 		$repeatOrders = DataObject::get('RepeatOrder', 'Status = \'Active\'');
 		//TODO: why this update version stuff?
-		RepeatOrder::$update_versions = false;
 		if($repeatOrders) {
 			foreach($repeatOrders as $repeatOrder) {
 				$repeatOrder->addAutomaticallyCreatedOrders();
 			}
 		}
-		RepeatOrder::$update_versions = true;
 	}
 
 	public function addAutomaticallyCreatedOrders() {
@@ -328,29 +311,29 @@ class RepeatOrder extends DataObject {
 /**
 	 * Create a RepeatOrder from a regular Order and its Order Items
 	 * @param Order $Order
-	 * @param $params params
 	 * @return RepeatOrder
 	 */
-	public static function createFromOrder(Order $Order, $params = array()) {
-		Versioned::reading_stage('Stage');
-		$RepeatOrder = new RepeatOrder();
-		$RepeatOrder->Status = 'Pending';
-		$RepeatOrder->MemberID = $Order->MemberID;
-		$RepeatOrder->update($params);
-		$RepeatOrder->write();
+	public static function create_repeat_order_from_order(Order $Order) {
+		$repeatOrder = new RepeatOrder();
+		$repeatOrder->Status = 'Pending';
+		$repeatOrder->MemberID = $Order->MemberID;
+		$repeatOrder->write();
 		$orderItems = $Order->Items();
 		if($orderItems) {
 			foreach($orderItems as $orderItem) {
-				$RepeatOrderItem = new RepeatOrder_OrderItem();
-				$RepeatOrderItem->OrderID = $RepeatOrder->ID;
-				$RepeatOrderItem->OrderVersion = $RepeatOrder->Version;
-				$RepeatOrderItem->ProductID = $orderItem->ProductID;
-				$RepeatOrderItem->Quantity = $orderItem->Quantity;
-				$RepeatOrderItem->write();
+				$buyable = $orderItem->Buyable();
+				if($buyable && $buyable instanceOf Product) {
+					$repeatOrder_orderItem = new RepeatOrder_OrderItem();
+					$repeatOrder_orderItem->OrderID = $repeatOrder->ID;
+					$repeatOrder_orderItem->OrderVersion = $orderItem->Version;
+					$repeatOrder_orderItem->ProductID = $orderItem->BuyableID;
+					$repeatOrder_orderItem->Quantity = $orderItem->Quantity;
+					$repeatOrder_orderItem->write();
+				}
 			}
 		}
-		$RepeatOrder->write();
-		return $RepeatOrder;
+		$repeatOrder->write();
+		return $repeatOrder;
 	}
 
 
@@ -649,55 +632,7 @@ HTML
 
 	public function onBeforeWrite() {
 		parent::onBeforeWrite();
-
-		$currentTime = strtotime(date('Y-m-d')) + (60 * 60 * 24 * self::get_minimum_days_in_the_future());
-		$startTime = strtotime($this->Start);
-		$endTime = strtotime($this->End);
-
-
-		if(($startTime + ( 7 * 60 * 60 * 24)) > $endTime) {
-			$this->End = date('Y-m-d', $startTime + ( 7 * 60 * 60 * 24));
-		}
-
 		$this->ItemsForSearchPurposes = $this->OrderItemList();
-		if(isset($_REQUEST['DeliveryDay'])) {
-			$this->DeliveryDay = $_REQUEST['DeliveryDay'];
-		}
-
-		if($this->ID == false) {
-
-			if(!isset($this->record['Version'])) {
-				$this->record['Version'] = -1;
-			}
-
-			$_SQL = Convert::raw2sql($_POST);
-
-			if($this->MemberID) {
-				$member = DataObject::get_by_id('Member', $this->MemberID);
-			}
-			else {
-				$member = DataObject::get_one('Member', 'Email = \''.$_SQL['Email'].'\'');
-			}
-
-			$data = array(); foreach($_POST as $k => $v) if($v) $data[$k] = $v;
-
-			if($member) {
-				$member->update($data);
-			}
-			else {
-				$member = new Member();
-				$member->update($data);
-			}
-
-			$member->write();
-
-			if($this->MemberID == false) {
-				$this->Notes = 'Manually Created by '.Member::currentMember()->Name;
-				$this->MemberID = $member->ID;
-			}
-
-			self::$update_versions = false;
-		}
 	}
 
 	/**
@@ -705,25 +640,6 @@ HTML
 	 */
 	public function onAfterWrite() {
 		parent::onAfterWrite();
-
-		if(self::$update_versions) {
-			self::$update_versions = false;
-
-			$OrderItems = DataObject::get('RepeatOrder_OrderItem', 'OrderID = '.$this->ID);
-
-			if($OrderItems) foreach($OrderItems as $OrderItem) {
-				if(
-					$OrderItem->ID != $this->ignoreID &&
-					$OrderItem->ClassName != $this->ignoreClass
-				) {
-					$OrderItem->OrderVersion = $this->Version;
-					$OrderItem->write();
-				}
-			}
-
-			self::$update_versions = true;
-		}
-		return true;
 	}
 
 //===========================================================================================================================================================================================
@@ -839,13 +755,16 @@ HTML
 
 
 	function canView($member = null) {
-		$memberID = Member::currentUser();
-		if($member->IsShopAdmin()) {
-			return true;
+		$member = Member::currentUser();
+		if($member) {
+			if($member->IsShopAdmin()) {
+				return true;
+			}
+			if($this->MemberID == $member->ID) {
+				return true;
+			}
 		}
-		if($this->MemberID == $member->ID) {
-			return true;
-		}
+		return false;
 	}
 
 	function canEdit($member = null) {
@@ -867,6 +786,7 @@ HTML
 	}
 
 
+
 }
 
 class RepeatOrder_OrderItem extends DataObject {
@@ -884,14 +804,6 @@ class RepeatOrder_OrderItem extends DataObject {
 		'Alternative3' => 'Product',
 		'Alternative4' => 'Product',
 		'Alternative5' => 'Product'
-	);
-
-	public static $versioning = array(
-		'Stage'
-	);
-
-	public static $extensions = array(
-		"Versioned('Stage')"
 	);
 
 	public function Title() {
@@ -945,6 +857,27 @@ class RepeatOrder_OrderItem extends DataObject {
 				$this->OrderVersion = $this->Order()->Version;
 			}
 		}
+	}
+
+	function TableAlternatives(){
+		return $this->AlternativesPerProduct();
+	}
+
+	function AlternativesPerProduct(){
+		$dos = new DataObjectSet();
+		for($i = 1; $i < 6; $i++) {
+			$alternativeField = "Alternative".$i."ID";
+			if($this->$alternativeField) {
+				$product = DataObject::get_by_id("Product", $this->$alternativeField);
+				if($product) {
+					$dos->push($product);
+				}
+			}
+		}
+		if($dos->count()) {
+			return $dos;
+		}
+		return null;
 	}
 
 }
