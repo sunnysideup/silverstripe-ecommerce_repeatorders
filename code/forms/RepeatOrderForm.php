@@ -174,7 +174,7 @@ class RepeatOrderForm extends Form {
 			else {
 				$params["Start"] = Date("Y-m-d");
 			}
-			if(isset($data['End'])  && strtotime($data['Start']) > strtotime($params["Start"])) {
+			if(isset($data['End'])  && strtotime($data['End']) > strtotime($params["Start"])) {
 				$params['End'] = $data['End'];
 			}
 			else {
