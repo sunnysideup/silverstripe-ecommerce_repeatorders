@@ -15,7 +15,7 @@ class RepeatOrderModifier extends OrderModifier {
 	 * Should we show a form in the checkout page for this modifier?
 	 */
 	public function showForm() {
-		return $this->Order()->Items();
+		return $this->Order()->Items() && $this->Order()->Items() && Member::currentUser();
 	}
 
 	public function getModifierForm($optionalController = null, $optionalValidator = null) {
