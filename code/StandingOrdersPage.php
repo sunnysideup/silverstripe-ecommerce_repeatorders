@@ -52,10 +52,6 @@ class RepeatOrdersPage extends AccountPage {
 		return !DataObject::get_one("RepeatOrdersPage");
 	}
 
-	/**
-	 * standard SS Variable
-	 */
-	public static $hide_ancestor = "AccountPage";
 
 	/**
 	 * standard SS Method
