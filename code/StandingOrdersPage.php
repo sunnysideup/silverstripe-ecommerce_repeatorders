@@ -251,7 +251,7 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller {
 		Requirements::javascript(THIRDPARTY_DIR."/jquery/jquery.js");
 		//Requirements::block(THIRDPARTY_DIR."/jquery/jquery.js");
 		//Requirements::javascript(Director::protocol()."ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js");
-		Requirements::javascript("ecommerce_Repeatorders/javascript/RepeatOrdersPage_admin.js");
+		Requirements::javascript("ecommerce_repeatorders/javascript/RepeatOrdersPage_admin.js");
 		Requirements::themedCSS("RepeatOrdersPage_admin");
 		return $this->renderWith(array('RepeatOrdersPage_admin', 'Page'), $params);
 	}

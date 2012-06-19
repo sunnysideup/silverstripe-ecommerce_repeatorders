@@ -39,7 +39,8 @@ class RepeatOrder extends DataObject {
 	 * Standard SS variable
 	 */
 	public static $has_one = array(
-		'Member' => 'Member'
+		'Member' => 'Member',
+		'OriginatingOrder' => 'Order'
 	);
 
 
@@ -59,6 +60,7 @@ class RepeatOrder extends DataObject {
 		"OrderItemList" => "Text",
 		"FirstOrderDate" => "Date",
 		"LastOrderDate" => "Date",
+		"TodaysOrderDate" => "Date",
 		"NextOrderDate" => "Date",
 		"FinalOrderDate" => "Date",
 		"DeliverySchedule" => "Text"
@@ -262,7 +264,7 @@ class RepeatOrder extends DataObject {
 
 	public function addAutomaticallyCreatedOrders() {
 		//current time + period is less than LastCreated and less then end
-		$currentTime = (strtotime(date('Y-m-d'))-1);
+		$today = (strtotime(date('Y-m-d')));
 		$firstOrderDate = $this->FirstOrderDate();
 		if($firstOrderDate) {
 			$startTime = strtotime($firstOrderDate->format("Y-m-d"));
@@ -273,13 +275,13 @@ class RepeatOrder extends DataObject {
 			return;
 		}
 		else {
-			$endTime = strtotime($this->End()->format("Y-m-d"));
-			if($currentTime > $endTime) {
+			$endTime = strtotime($this->dbObject("End")->format("Y-m-d"));
+			if($today > $endTime) {
 				$this->Status = 'Finished';
 				$this->write();
 				return;
 			}
-			elseif($startTime < $currentTime) {
+			elseif($startTime < $today) {
 				$a = $this->workOutSchedule();
 				if(count($a)) {
 					foreach($a as $orderDateInteger => $orderDateLong) {
@@ -297,10 +299,52 @@ class RepeatOrder extends DataObject {
 							$order->OrderDate = date("Y-m-d", $orderDateInteger);
 							$order->RepeatOrderID = $this->ID;
 							$order->MemberID = $this->MemberID;
+
+
+
 							$order->write();
-							$order->submit();
+
+							if($this->OrderItems()) {
+								foreach($repeatOrder->OrderItems() as $repeatOrderOrderItem) {
+									$product = DataObject::get_by_id('Product', $repeatOrderOrderItem->ProductID);
+									if($product) {
+										//CHECK AVAILABILITY
+										if(class_exists("ProductStockCalculatedQuantity")) {
+											$numberAvailable = ProductStockCalculatedQuantity::get_quantity_by_product_id($product->ID);
+											if($numberAvailable < $repeatOrderOrderItem->Quantity) {
+												$alternatives = $repeatOrderOrderItem->AlternativesPerProduct();
+												$product = null;
+												if($dos) {
+													foreach($alternatives as $alternative) {
+														$stillLookingForAlternative = true;
+														$numberAvailable = ProductStockCalculatedQuantity::get_quantity_by_product_id($alternative->ID);
+														if($numberAvailable > $repeatOrderOrderItem->Quantity && $stillLookingForAlternative) {
+															$stillLookingForAlternative = false;
+															$product = $alternative;
+														}
+													}
+												}
+											}
+										}
+										if($product) {
+											$newProductOrderItem = new Product_OrderItem();
+											$newProductOrderItem->addBuyableToOrderItem($product, $repeatOrderOrderItem->Quantity);
+											$newProductOrderItem->OrderID = $order->ID;
+											$newProductOrderItem->write();
+										}
+									}
+									else {
+										USER_ERROR("Product does not exist", E_USER_WARNING);
+									}
+								}
+							}
+							else {
+								USER_ERROR("There are no order items", E_USER_WARNING);
+							}
+							//FINALISE!!!
+							$order->write();
+							$order->tryToFinaliseOrder();
 						}
-						return $order->ID;
 					}
 				}
 			}
@@ -513,14 +557,6 @@ HTML
 	 */
 	public function getCMSProductsTable() {
 		$products = DataObject::get('Product');
-
-		$fields = new TabSet('Root',
-			new Tab('Main',
-				new DropdownField('ProductID', 'Choose a product:', $products->map()),
-				new TextField('Quantity', 'Quantity')
-			)
-		);
-
 		$table = new ComplexTableField(
 			$this,
 			'OrderItems',
@@ -528,8 +564,7 @@ HTML
 			array(
 				'Product.Title' => 'Title',
 				'Quantity' => 'Qty',
-			),
-			new FieldSet($fields)
+			)
 		);
 
 		$table->setShowPagination(false);
@@ -644,6 +679,11 @@ HTML
 
 //===========================================================================================================================================================================================
 
+	/**
+	 * List of products
+	 *
+	 * @return String
+	 */
 	function OrderItemList() {return $this->getOrderItemList();}
 	function getOrderItemList() {
 		$a = array();
@@ -662,58 +702,103 @@ HTML
 	}
 
 //===========================================================================================================================================================================================
+
+	/**
+	 * The first order date
+	 *
+	 * @return Date | Null
+	 */
 	function FirstOrderDate() {return $this->getFirstOrderDate();}
 	function getFirstOrderDate() {
 		$a = $this->workOutSchedule();
 		if(count($a)) {
-			foreach($a as $k => $v) {
-				return Date::create($className = "Date", $value = Date("Y-m-d", $k));
+			foreach($a as $orderDateInteger => $orderDateLong) {
+				return Date::create($className = "Date", $value = Date("Y-m-d", $orderDateInteger));
 			}
 		}
 	}
 
+	/**
+	 * Last date that an order was placed
+	 *
+	 * @return Date | Null
+	 */
 	function LastOrderDate() {return $this->getLastOrderDate();}
 	function getLastOrderDate() {
 		$a = $this->workOutSchedule();
 		$today = strtotime(Date("Y-m-d"));
 		$i = 0;
 		if(count($a)) {
-			foreach($a as $k => $v) {
-				if($k > $today && $i > 0 && $previousK < $today) {
-					return Date::create($className = "Date", $value = Date("Y-m-d", $previousK));
+			foreach($a as $orderDateInteger => $orderDateLong) {
+				if($orderDateInteger > $today && $i > 0 && $previousoOrderDateInteger < $today) {
+					return Date::create($className = "Date", $value = Date("Y-m-d", $previousoOrderDateInteger));
 				}
-				$previousK = $k;
+				$previousoOrderDateInteger = $orderDateInteger;
 				$i++;
 			}
 		}
 	}
 
-	function NextOrderDate() {return $this->getNextOrderDate();}
-	function getNextOrderDate() {
+	/**
+	 * today's' date for the order - if ANY!
+	 *
+	 * @return Date | Null
+	 */
+	function TodaysOrderDate() {return $this->getTodaysOrderDate();}
+	function getTodaysOrderDate() {
 		$a = $this->workOutSchedule();
 		$today = strtotime(Date("Y-m-d"));
 		if(count($a)) {
-			foreach($a as $k =>$v) {
-				if($k > $today) {
-					return Date::create($className = "Date", $value = Date("Y-m-d", $k));
+			foreach($a as $orderDateInteger => $orderDateLong) {
+				if($orderDateInteger == $today) {
+					return Date::create($className = "Date", $value = Date("Y-m-d", $orderDateInteger));
 				}
 			}
 		}
 	}
 
-	function FinalOrderDate() {return $this->getFinalOrderDate();}
-	function getFinalOrderDate() {
+	/**
+	 * Next date (from the viewpoint of today)
+	 *
+	 * @return Date | Null
+	 */
+	function NextOrderDate() {return $this->getNextOrderDate();}
+	function getNextOrderDate() {
 		$a = $this->workOutSchedule();
+		$today = strtotime(Date("Y-m-d"));
 		if(count($a)) {
-			foreach($a as $k =>$v) {
-				//do nothing wait for last one...
-			}
-			if($k) {
-				return Date::create($className = "Date", $value = Date("Y-m-d", $k));
+			foreach($a as $orderDateInteger => $orderDateLong) {
+				if($orderDateInteger > $today) {
+					return Date::create($className = "Date", $value = Date("Y-m-d", $orderDateInteger));
+				}
 			}
 		}
 	}
 
+
+	/**
+	 * Last Delivery Date
+	 *
+	 * @return Date | Null
+	 */
+	function FinalOrderDate() {return $this->getFinalOrderDate();}
+	function getFinalOrderDate() {
+		$a = $this->workOutSchedule();
+		if(count($a)) {
+			foreach($a as $orderDateInteger => $orderDateLon) {
+				//do nothing wait for last one...
+			}
+			if($orderDateInteger) {
+				return Date::create($className = "Date", $value = Date("Y-m-d", $orderDateInteger));
+			}
+		}
+	}
+
+	/**
+	 * List of delivery dates
+	 *
+	 * @return String
+	 */
 	function DeliverySchedule() {return $this->getDeliverySchedule();}
 	function getDeliverySchedule() {
 		$a = $this->workOutSchedule();
@@ -723,6 +808,10 @@ HTML
 	}
 
 
+	/**
+	 * Work out the delivery schedule
+	 *
+	 */
 	protected function workOutSchedule() {
 		if(!isset(self::$schedule[$this->ID])) {
 			$a = array();
@@ -753,6 +842,28 @@ HTML
 		return self::$schedule[$this->ID];
 	}
 
+
+	/**
+	 * Are there any orders scheduled for the future
+	 * @return Boolean
+	 */
+	function HasFutureOrders(){
+		if($this->NextOrderDate()) {
+			return true;
+		}
+	}
+
+	/**
+	 * Are there any orders scheduled for today
+	 * @return Boolean
+	 */
+	function HasAnOrderToday(){
+		if($this->TodaysOrderDate()) {
+			return true;
+		}
+	}
+
+//===========================================================================================================================================================================================
 
 	function canView($member = null) {
 		$member = Member::currentUser();
@@ -805,6 +916,12 @@ class RepeatOrder_OrderItem extends DataObject {
 		'Alternative4' => 'Product',
 		'Alternative5' => 'Product'
 	);
+
+	public function getCMSFields() {
+		$fields = parent::getCMSFields();
+		$fields->removeByName("OrderVersion");
+		return $fields;
+	}
 
 	public function Title() {
 		return $this->Product()->Title;
