@@ -17,6 +17,12 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 			),
 			'indexes' => array(
 				'OrderDateInteger' => true
+			),
+			'searchable_fields' => array(
+				'RepeatOrderID' => array(
+					'field' => 'NumericField',
+					'title' => 'Repeat Order Number'
+				)
 			)
 		);
 	}
