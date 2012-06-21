@@ -14,6 +14,9 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 			),
 			'has_one' => array(
 				'RepeatOrder' => 'RepeatOrder'
+			),
+			'indexes' => array(
+				'OrderDateInteger' => true
 			)
 		);
 	}
@@ -22,6 +25,10 @@ class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator {
 		$fields->removeByName("OrderDate");
 		$fields->removeByName("OrderDateInteger");
 		$fields->removeByName("RepeatOrderID");
+		if($this->owner->RepeatOrderID) {
+			$fields->addFieldToTab("Root.RepeatOrder", new ReadonlyField("OrderDate", "Planned Order Date - based on repeating order schedule"));
+			$fields->addFieldToTab("Root.RepeatOrder", new ReadonlyField("RepeatOrderID", "Created as part of Repeat Order #"));
+		}
 	}
 
 	function FuturePast() {

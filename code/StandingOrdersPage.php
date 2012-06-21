@@ -211,23 +211,25 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller {
 	public function RepeatOrderForm() {
 		$action = $this->request->param('Action');
 		$repeatOrderID = intval($this->request->param('ID'));
+		$orderID = 0;
 		if($action == 'createorder' || isset($_REQUEST['action_doCreate'])) {
 			if(isset($_REQUEST['action_doCreate']) && isset($_REQUEST['repeatOrderID'])) {
 				$repeatOrderID = $_REQUEST['repeatOrderID'];
 			}
 			if($action == 'createorder') {
+				$orderID = $repeatOrderID;
 				$repeatOrderID = 0;
 			}
-			return new RepeatOrderForm($this, 'RepeatOrderForm', $repeatOrderID, false);
+			return new RepeatOrderForm($this, 'RepeatOrderForm', $repeatOrderID, $orderID);
 		}
 		else if($action == 'update' || isset($_REQUEST['action_doSave'])) {
 			if(isset($_REQUEST['action_doSave']) && isset($_REQUEST['RepeatOrderID'])) {
 				$repeatOrderID = $_REQUEST['RepeatOrderID'];
 			}
-			return new RepeatOrderForm($this, 'RepeatOrderForm', $repeatOrderID, true);
+			return new RepeatOrderForm($this, 'RepeatOrderForm', $repeatOrderID, $orderID);
 		}
 		elseif($repeatOrderID) {
-			return new RepeatOrderForm($this, 'RepeatOrderForm', $repeatOrderID, true);
+			return new RepeatOrderForm($this, 'RepeatOrderForm', $repeatOrderID, $orderID);
 		}
 		else {
 			user_error("Could not find order");

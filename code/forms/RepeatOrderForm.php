@@ -3,18 +3,28 @@
 
 class RepeatOrderForm extends Form {
 
-	public function __construct($controller, $name, $repeatOrderID = 0) {
+	public function __construct($controller, $name, $repeatOrderID = 0, $originatingOrder = 0) {
+		$order = null;
 		//create vs edit
 		if($repeatOrderID) {
-			$order = null;
 			$repeatOrder = DataObject::get_by_id('RepeatOrder', $repeatOrderID);
 			$items = $repeatOrder->OrderItems();
 
 		}
 		else {
-			$order = ShoppingCart::current_order();
 			$repeatOrder = null;
-			$items = $order->Items();
+			if($originatingOrder) {
+				$order = Order::get_by_id_if_can_view($originatingOrder);
+			}
+			if(!$order) {
+				$order = ShoppingCart::current_order();
+			}
+			if($order) {
+				$items = $order->Items();
+			}
+			else {
+				$items = null;
+			}
 		}
 
 		//build fields
@@ -47,6 +57,9 @@ class RepeatOrderForm extends Form {
 					$fields->push(new DropdownField('Product['.$alternativeField.']['.$itemID.']', " ... alternative $i", $alternativeItemsMap, (isset($item->$alternativeField) ? $item->$alternativeField : 0)));
 				}
 			}
+		}
+		else {
+			$fields->push(new HeaderField('items', 'There are no products in this repeating order'));
 		}
 
 		//other details
@@ -128,7 +141,6 @@ class RepeatOrderForm extends Form {
 	 */
 	public function doSave($data, $form, $request) {
 		$data = Convert::raw2sql($data);
-		Versioned::reading_stage('Stage');
 		$member = Member::currentUser();
 		if(!$member) {
 			$form->sessionMessage('Could not find customer details.', 'bad');

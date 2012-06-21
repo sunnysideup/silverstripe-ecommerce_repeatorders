@@ -19,7 +19,6 @@ class RepeatOrder extends DataObject {
 	 * Standard SS variable
 	 */
 	public static $db = array(
-		//TO DO: align with new version of e-commerce!
 		'Status' => "Enum('Pending, Active, MemberCancelled, AdminCancelled, Finished', 'Pending')",
 		//dates
 		'Start' => 'Date',
@@ -52,6 +51,12 @@ class RepeatOrder extends DataObject {
 		'Orders' => 'Order'
 	);
 
+	/**
+	 * Standard SS variable.
+	 */
+	public static $indexes = array(
+		"Status" => true
+	);
 
 	/**
 	 * Standard SS variable
@@ -111,13 +116,6 @@ class RepeatOrder extends DataObject {
 		static function set_period_fields($array) { self::$period_fields = $array;}
 		static function get_period_fields() { return self::$period_fields;}
 		static function default_period_key() {if($a = self::get_period_fields()) {foreach($a as $k => $v) {return $k;}}}
-
-	/**
-	 * Should orderItems/orders call a write to update versions?
-	 * TODO: more documentation
-	 */
-	public static $update_versions = true;
-
 
 	/**
 	 * @var Array
@@ -234,6 +232,10 @@ class RepeatOrder extends DataObject {
 		return $page->Link();
 	}
 
+	/**
+	 * returns a list of actual orders that have been created from this repeat order.
+	 * @return DOS | Null
+	 */
 	public function AutomaticallyCreatedOrders() {
 		$orders = DataObject::get("Order", "RepeatOrderID = ".$this->ID, "OrderDate ASC");
 		$dos = new DataObjectSet();
@@ -242,7 +244,9 @@ class RepeatOrder extends DataObject {
 				$dos->push($order);
 			}
 		}
-		return $dos;
+		if($dos && $dos->count()) {
+			return $dos;
+		}
 	}
 
 //====================================================================================================================================================================================
@@ -254,7 +258,6 @@ class RepeatOrder extends DataObject {
 		set_time_limit(0); //might take a while with lots of orders
 		//get all Repeat orders
 		$repeatOrders = DataObject::get('RepeatOrder', 'Status = \'Active\'');
-		//TODO: why this update version stuff?
 		if($repeatOrders) {
 			foreach($repeatOrders as $repeatOrder) {
 				$repeatOrder->addAutomaticallyCreatedOrders();
@@ -262,6 +265,10 @@ class RepeatOrder extends DataObject {
 		}
 	}
 
+
+	/**
+	 * adds the orders that
+	 */
 	public function addAutomaticallyCreatedOrders() {
 		//current time + period is less than LastCreated and less then end
 		$today = (strtotime(date('Y-m-d')));
@@ -285,69 +292,80 @@ class RepeatOrder extends DataObject {
 				$a = $this->workOutSchedule();
 				if(count($a)) {
 					foreach($a as $orderDateInteger => $orderDateLong) {
-						if($order = DataObject::get_one("Order", "OrderDateInteger = '".$orderDateInteger."' AND RepeatOrderID = ".$this->ID)) {
-							//do nothing
-						}
-						elseif(!$this->MemberID){
+						if(!$this->MemberID){
 							USER_ERROR("Can not create Order without member linked in RepeatOrder #".$this->ID, E_USER_ERROR);
 						}
 						elseif(!$orderDateInteger){
 							USER_ERROR("Can not create Order without date for in RepeatOrder #".$this->ID, E_USER_ERROR);
 						}
-						else {
-							$order = new Order();
-							$order->OrderDate = date("Y-m-d", $orderDateInteger);
-							$order->RepeatOrderID = $this->ID;
-							$order->MemberID = $this->MemberID;
-
-
-
-							$order->write();
-
-							if($this->OrderItems()) {
-								foreach($repeatOrder->OrderItems() as $repeatOrderOrderItem) {
-									$product = DataObject::get_by_id('Product', $repeatOrderOrderItem->ProductID);
-									if($product) {
-										//CHECK AVAILABILITY
-										if(class_exists("ProductStockCalculatedQuantity")) {
-											$numberAvailable = ProductStockCalculatedQuantity::get_quantity_by_product_id($product->ID);
-											if($numberAvailable < $repeatOrderOrderItem->Quantity) {
-												$alternatives = $repeatOrderOrderItem->AlternativesPerProduct();
-												$product = null;
-												if($dos) {
-													foreach($alternatives as $alternative) {
-														$stillLookingForAlternative = true;
-														$numberAvailable = ProductStockCalculatedQuantity::get_quantity_by_product_id($alternative->ID);
-														if($numberAvailable > $repeatOrderOrderItem->Quantity && $stillLookingForAlternative) {
-															$stillLookingForAlternative = false;
-															$product = $alternative;
-														}
-													}
-												}
-											}
-										}
-										if($product) {
-											$newProductOrderItem = new Product_OrderItem();
-											$newProductOrderItem->addBuyableToOrderItem($product, $repeatOrderOrderItem->Quantity);
-											$newProductOrderItem->OrderID = $order->ID;
-											$newProductOrderItem->write();
-										}
-									}
-									else {
-										USER_ERROR("Product does not exist", E_USER_WARNING);
-									}
-								}
-							}
-							else {
-								USER_ERROR("There are no order items", E_USER_WARNING);
-							}
-							//FINALISE!!!
-							$order->write();
-							$order->tryToFinaliseOrder();
+						elseif($orderDateInteger <= $today) {
+							$this->createOrderFromRepeatOrder($orderDateInteger);
 						}
 					}
 				}
 			}
+		}
+	}
+
+
+	/**
+	 * creates order from repeatorder for a specific day.
+	 * IF it does not already exists.
+	 *
+	 */
+	protected function createOrderFromRepeatOrder($orderDateInteger) {
+		if($order = DataObject::get_one("Order", "\"OrderDateInteger\" = '".$orderDateInteger."' AND \"RepeatOrderID\" = ".$this->ID)) {
+			//do nothing
+		}
+		else {
+			$order = new Order();
+			$order->OrderDate = date("Y-m-d", $orderDateInteger);
+			$order->OrderDateInteger = $orderDateInteger;
+			$order->RepeatOrderID = $this->ID;
+			$order->MemberID = $this->MemberID;
+			$order->CustomerOrderNote = "Created as part of a repeating order.";
+			$order->write();
+			if($this->OrderItems()) {
+				foreach($this->OrderItems() as $repeatOrderOrderItem) {
+					$product = DataObject::get_by_id('Product', $repeatOrderOrderItem->ProductID);
+					if($product) {
+						//START CHECK AVAILABILITY
+						if(class_exists("ProductStockCalculatedQuantity")) {
+							$numberAvailable = ProductStockCalculatedQuantity::get_quantity_by_product_id($product->ID);
+							if($numberAvailable < $repeatOrderOrderItem->Quantity) {
+								$alternatives = $repeatOrderOrderItem->AlternativesPerProduct();
+								$product = null;
+								if($dos) {
+									foreach($alternatives as $alternative) {
+										$stillLookingForAlternative = true;
+										$numberAvailable = ProductStockCalculatedQuantity::get_quantity_by_product_id($alternative->ID);
+										if($numberAvailable > $repeatOrderOrderItem->Quantity && $stillLookingForAlternative) {
+											$stillLookingForAlternative = false;
+											$product = $alternative;
+										}
+									}
+								}
+							}
+						}
+						//END CHECK AVAILABILITY
+						if($product) {
+							$newProductOrderItem = new Product_OrderItem();
+							$newProductOrderItem->addBuyableToOrderItem($product, $repeatOrderOrderItem->Quantity);
+							$newProductOrderItem->OrderID = $order->ID;
+							$newProductOrderItem->write();
+						}
+					}
+					else {
+						USER_ERROR("Product does not exist", E_USER_WARNING);
+					}
+				}
+			}
+			else {
+				USER_ERROR("There are no order items", E_USER_WARNING);
+			}
+			//FINALISE!!!
+			$order->write();
+			$order->tryToFinaliseOrder();
 		}
 	}
 
@@ -369,7 +387,6 @@ class RepeatOrder extends DataObject {
 				if($buyable && $buyable instanceOf Product) {
 					$repeatOrder_orderItem = new RepeatOrder_OrderItem();
 					$repeatOrder_orderItem->OrderID = $repeatOrder->ID;
-					$repeatOrder_orderItem->OrderVersion = $orderItem->Version;
 					$repeatOrder_orderItem->ProductID = $orderItem->BuyableID;
 					$repeatOrder_orderItem->Quantity = $orderItem->Quantity;
 					$repeatOrder_orderItem->write();
@@ -386,16 +403,26 @@ class RepeatOrder extends DataObject {
 
 //================================================================================================================================================================================
 
+	/**
+	 * @return string
+	 */
 	public function TableDeliveryDay() {
 		return $this->DeliveryDay;
 	}
 
+	/**
+	 * @return string
+	 */
 	public function TablePaymentMethod() {
 		if(isset(self::$payment_methods[$this->PaymentMethod])) {
 			return self::$payment_methods[$this->PaymentMethod];
 		}
+		return "";
 	}
 
+	/**
+	 * @return string
+	 */
 	public function TableStatus() {
 		return self::$status_nice[$this->Status];
 	}
@@ -410,11 +437,12 @@ class RepeatOrder extends DataObject {
 	 * @see sapphire/core/model/DataObject#getCMSFields($params)
 	 */
 	public function getCMSFields() {
-		if($this->ID) {
-			return self::getCMSFields_edit();
+		if($this->exists()) {
+			$this->addAutomaticallyCreatedOrders();
+			return $this->getCMSFields_edit();
 		}
 		else {
-			return self::getCMSFields_add();
+			return $this->getCMSFields_add();
 		}
 	}
 
@@ -465,13 +493,6 @@ class RepeatOrder extends DataObject {
 		if(!$this->DeliveryDay) {
 			$firstCreated = $finalCreated = $lastCreated = $nextCreated = "Please select a delivery day first.";
 		}
-		$page = DataObject::get_one("RepeatOrdersPage");
-		if($page) {
-			$RepeatOrdersPageLink = '<h3>Create Orders</h3><p><a href="'.$page->Link().'admin" target="_blank">please click here to create and execute actual orders for this Repeat order ....</a></p><h3>Review Orders</h3>';
-		}
-		else {
-			$RepeatOrdersPageLink = '<p>You must create a Repeat Orders Page before you can execute orders.</p>';
-		}
 		$fields = new FieldSet(
 			new TabSet('Root',
 				new Tab('Main',
@@ -481,7 +502,7 @@ class RepeatOrder extends DataObject {
 	<div class="field readonly " id="Readonly[Member]">
 		<label for="Form_EditForm_Readonly-Member" class="left">Member</label>
 		<div class="middleColumn">
-			<span class="readonly" id="Form_EditForm_Readonly-Member">{$this->Member()->getTitle()} ({$this->Member()->Email}) <a target="_blank" href="admin/security/EditForm/field/Members/item/{$this->Member()->ID}/show">(view)</a></span>
+			<span class="readonly" id="Form_EditForm_Readonly-Member">{$this->Member()->getTitle()} ({$this->Member()->Email}) </span>
 			<input type="hidden" value="{$this->Member()->getTitle()} ({$this->Member()->Email})" name="Readonly[Member]"/>
 		</div>
 	</div>
@@ -508,7 +529,6 @@ HTML
 					$this->getCMSProductsTable()
 				),
 				new Tab('Orders',
-					new LiteralField("RepeatOrdersPageLink", $RepeatOrdersPageLink),
 					$this->getCMSPreviousOrders(),
 					new ReadonlyField("DeliveryScheduleFormatted", "Delivery Schedule", $this->DeliverySchedule()),
 					new ReadonlyField("FirstCreatedFormatted", "First Order", $firstCreated),
@@ -544,11 +564,45 @@ HTML
 					new TextareaField('Notes', 'Notes')
 				),
 				new Tab('Products',
-					$this->getCMSVersionedProductsTable()
+					$this->getCMSProductsTable()
 				)
 			)
 		);
 		return $fields;
+	}
+
+
+
+	/**
+	 * Get previous actual order table
+	 * @return ComplexTableField
+	 */
+	public function getCMSPreviousOrders() {
+
+		$table = new ComplexTableField(
+			$controller = $this,
+			$name = "PreviousOrders",
+			$sourceClass = "Order",
+			$fieldList = array(
+				"Title" => "Summary",
+				"Total" => "Total",
+				"CustomerStatus" => "Status",
+				"OrderDate" => "Planned Date",
+				"RetrieveLink" => "RetrieveLink"
+			),
+			$detailFormFields = null,
+			$sourceFilter = "RepeatOrderID = ".$this->ID,
+			$sourceSort = "OrderDateInteger DESC",
+			$sourceJoin = ""
+		);
+		$table->setFieldCasting(array(
+			'OrderDate' => 'Date->Long',
+			'Total' => 'Currency->Nice'
+		));
+		$table->setShowPagination(false);
+		$table->setAddTitle('Previous Orders');
+		$table->setPermissions(array("export", "show"));
+		return $table;
 	}
 
 	/**
@@ -556,7 +610,6 @@ HTML
 	 * @return ComplexTableField
 	 */
 	public function getCMSProductsTable() {
-		$products = DataObject::get('Product');
 		$table = new ComplexTableField(
 			$this,
 			'OrderItems',
@@ -575,92 +628,6 @@ HTML
 	}
 
 
-	/**
-	 * Get previous actual order table
-	 * @return ComplexTableField
-	 */
-	public function getCMSPreviousOrders() {
-		$table = new ComplexTableField(
-			$controller = $this,
-			$name = 'PreviousOrders',
-			$sourceClass = 'Order',
-			$fieldList = array(
-				"ID" => "Order ID",
-				"Total" => "Value",
-				"OrderDate" => "OrderDate",
-				"Status" => "Status",
-				"ViewHTMLLink" => "Link"
-			),
-			$detailFormFields = new FieldSet(),
-			$sourceFilter = "RepeatOrderID = ".$this->ID,
-			$sourceSort = "OrderDateInteger DESC",
-			$sourceJoin = ""
-		);
-		$table->setFieldCasting(array(
-			'OrderDate' => 'Date->Long',
-			'Total' => 'Currency->Nice'
-		));
-		$table->setShowPagination(false);
-		$table->setAddTitle('Previous Orders');
-		$table->setPermissions(array("export"));
-		return $table;
-	}
-
-
-
-	/**
-	 * Get products table for versioned popup
-	 * @return ComplexTableField
-	 */
-	public function getCMSVersionedProductsTable() {
-		$table = new ComplexTableField(
-			$this,
-			'OrderItems',
-			'RepeatOrder_OrderItem',
-			array(
-				'Product.Title' => 'Title',
-				'Quantity' => 'Qty',
-			),
-			'getCMSFields_forPopup'
-		);
-
-		$table->setCustomSourceItems($this->getVersionedComponents('OrderItems'));
-
-		$table->setShowPagination(false);
-		$table->setPermissions(array());
-
-		return $table;
-	}
-
-	/**
-	 * Repeating Order History
-	 * @return unknown_type
-	 */
-	public function getCMSHistoryTable() {
-		$table = new VersionedComplexTableField(
-			$this,
-			'RepeatOrders',
-			'RepeatOrder',
-			array(
-				'LastEdited' => 'Date'
-			),
-			'getCMSFields_forPopup'
-		);
-
-		$table->setCustomSourceItems($this->allVersions());
-		$table->setPermissions(array('show'));
-
-		return $table;
-	}
-
-	public function getVersionedComponents($component) {
-		$bt = defined('DB::USE_ANSI_SQL') ? "\"" : "`";
-		$baseTable = ClassInfo::baseDataClass(self::$has_many[$component]);
-		$query = singleton(self::$has_many[$component])->buildVersionSQL("{$bt}{$baseTable}{$bt}.OrderID = {$this->ID} AND {$bt}{$baseTable}{$bt}.OrderVersion = {$this->Version}");
-		$result = singleton(self::$has_many[$component])->buildDataObjectSet($query->execute());
-
-		return $result;
-	}
 
 
 //========================================================================================================================================================================================================================================================================
@@ -668,13 +635,6 @@ HTML
 	public function onBeforeWrite() {
 		parent::onBeforeWrite();
 		$this->ItemsForSearchPurposes = $this->OrderItemList();
-	}
-
-	/**
-	 * Complex Versioning accross more than one DataObject
-	 */
-	public function onAfterWrite() {
-		parent::onAfterWrite();
 	}
 
 //===========================================================================================================================================================================================
@@ -785,7 +745,7 @@ HTML
 	function getFinalOrderDate() {
 		$a = $this->workOutSchedule();
 		if(count($a)) {
-			foreach($a as $orderDateInteger => $orderDateLon) {
+			foreach($a as $orderDateInteger => $orderDateLong) {
 				//do nothing wait for last one...
 			}
 			if($orderDateInteger) {
@@ -810,9 +770,10 @@ HTML
 
 	/**
 	 * Work out the delivery schedule
-	 *
+	 * @return Array
 	 */
 	protected function workOutSchedule() {
+		//caching value for quicker response
 		if(!isset(self::$schedule[$this->ID])) {
 			$a = array();
 			if($this->Period && $this->End && $this->Start && $this->DeliveryDay && $this->Status == "Active") {
@@ -903,8 +864,7 @@ HTML
 class RepeatOrder_OrderItem extends DataObject {
 
 	public static $db = array(
-		'Quantity' => 'Int',
-		'OrderVersion' => 'Int',
+		'Quantity' => 'Int'
 	);
 
 	public static $has_one = array(
@@ -919,67 +879,56 @@ class RepeatOrder_OrderItem extends DataObject {
 
 	public function getCMSFields() {
 		$fields = parent::getCMSFields();
-		$fields->removeByName("OrderVersion");
 		return $fields;
 	}
 
 	public function Title() {
-		return $this->Product()->Title;
+		if($product = $this->Product()) {
+			return $product->Title;
+		}
+		return "NOT FOUND";
 	}
 
 	public function BuyableTitle() {
-		return $this->Product()->Title;
-	}
-
-	public function Link() {
-		return $this->Product()->Link();
-	}
-
-	public function ProductVersion() {
-		return $this->Product()->Version;
-	}
-
-	public function getProductID() {
-		return $this->Product()->ID;
+		if($product = $this->Product()) {
+			return $product->Title;
+		}
+		return "NOT FOUND";
 	}
 
 	/**
-	 * Complex Versioning accross more than one DataObject
+	 * returns a link to the product
+	 * @return String
 	 */
-	public function onBeforeWrite() {
-		parent::onBeforeWrite();
-		if(RepeatOrder::$update_versions == true) {
-			if($this->ID) {
-				$this->Order()->ignoreID = $this->ID;
-				$this->Order()->ignoreClassName = $this->ClassName;
-				$this->Order()->write();
-				$this->OrderVersion = $this->Order()->Version;
-			}
+	public function Link() {
+		if($product = $this->Product()) {
+			return $product->Link;
 		}
+		return "";
 	}
 
-	public function onAfterWrite() {
-		parent::onAfterWrite();
-
-	}
-
-	public function onBeforeDelete() {
-		parent::onBeforeDelete();
-
-		if(RepeatOrder::$update_versions == true) {
-			if($this->ID) {
-				$this->Order()->ignoreID = $this->ID;
-				$this->Order()->ignoreClassName = $this->ClassName;
-				$this->Order()->write();
-				$this->OrderVersion = $this->Order()->Version;
-			}
+	/**
+	 * returns the product ID
+	 * @return String
+	 */
+	public function getProductID() {
+		if($product = $this->Product()) {
+			return $product->ID;
 		}
+		return 0;
 	}
 
+	/**
+	 * Alias for AlternativesPerProduct
+	 */
 	function TableAlternatives(){
 		return $this->AlternativesPerProduct();
 	}
 
+	/**
+	 * returns a list of alternatives per product (if any)
+	 * @return NULL | DataObjectSet
+	 */
 	function AlternativesPerProduct(){
 		$dos = new DataObjectSet();
 		for($i = 1; $i < 6; $i++) {
@@ -991,7 +940,7 @@ class RepeatOrder_OrderItem extends DataObject {
 				}
 			}
 		}
-		if($dos->count()) {
+		if($dos && $dos->count()) {
 			return $dos;
 		}
 		return null;
