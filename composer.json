@@ -1,0 +1,21 @@
+{
+	"name": "silverstripe/ecommerce_repeatorders",
+	"type": "silverstripe-module",
+	"description": "silverstripe-ecommerce_repeatorders",
+	"homepage": "http://www.silverstripe-ecommerce.com",
+	"keywords": ["ecommerce", "e-commerce", "shop", "repeat orders", "silverstripe"],
+	"license": "Sunny Side Up (BSD-3-Clause and CUSTOM)",
+	"authors":[
+		{
+			"name": "Nicolaas Francken",
+			"homepage": "https://github.com/sunnysideup",
+			"email" : "modules@sunnysideup.co.nz",
+			"role" : "lead developer"
+		}
+	],
+	"require":{
+		"php": ">=5.3.2",
+		"silverstripe/framework": ">=2.4.0",
+		"silverstripe/ecommerce": ">=2.4.0"
+	}
+}
