@@ -1,7 +1,6 @@
-###############################################
+
 Ecommerce Repeat Orders
-Pre 0.1 proof of concept
-###############################################
+================================================================================
 
 Add the "repeating order" functionality to
 e-commerce.  For example, if someone wants to purchase
