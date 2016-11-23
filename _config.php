@@ -9,5 +9,3 @@
 //RepeatOrder::set_payment_methods(array('DirectCreditPayment'  => 'Direct Credit (payment into bank account)', 'DpsPxPayStoredPayment'  => 'Saved Credit Card using DPS'));
 //RepeatOrder::set_minimum_days_in_the_future(3);
 //===================---------------- END ecommerce_Repeatorders MODULE ----------------===================
-
-

@@ -3,11 +3,13 @@
     "type": "silverstripe-module",
     "description": "silverstripe-ecommerce_repeatorders",
     "keywords": [
+        "Silverstripe-CMS",
+        "CMS",
+        "Silverstripe",
         "ecommerce",
         "e-commerce",
         "shop",
-        "repeat orders",
-        "silverstripe"
+        "repeat orders"
     ],
     "license": "Sunny Side Up (BSD-3-Clause and CUSTOM)",
     "authors": [
@@ -20,6 +22,7 @@
     "require": {
         "php": ">=5.3.2",
         "silverstripe/framework": "~2.4",
-        "sunnysideup/ecommerce": "~2.4"
+        "sunnysideup/ecommerce": "~2.4",
+        "silverstripe/cms": "~2.4"
     }
 }
