@@ -8,7 +8,7 @@ class RepeatOrderForm extends Form
         $order = null;
         //create vs edit
         if ($repeatOrderID) {
-            $repeatOrder = DataObject::get_by_id('RepeatOrder', $repeatOrderID);
+            $repeatOrder = DataObject::get_one('RepeatOrder', "ID = ".$repeatOrderID);
             $items = $repeatOrder->OrderItems();
         } else {
             $repeatOrder = null;
@@ -26,12 +26,12 @@ class RepeatOrderForm extends Form
         }
 
         //build fields
-        $fields = new FieldSet();
+        $fields = new FieldList();
 
         //products!
         if ($items) {
             $fields->push(new HeaderField('ProductsHeader', 'Products'));
-            $products = DataObject::get('Product', "\"AllowPurchase\" = 1");
+            $products = Product::get()->filter('Product', "\"AllowPurchase\" = 1");
             $productsMap = $products->map('ID', 'Title');
             $this->array_unshift_assoc($productsMap, 0, "--- Please select ---");
             foreach ($productsMap as $id => $title) {
@@ -101,7 +101,7 @@ class RepeatOrderForm extends Form
         }
 
         //actions
-        $actions = new FieldSet();
+        $actions = new FieldList();
         if ($repeatOrder) {
             $actions->push(new FormAction('doSave', 'Save'));
         } else {
@@ -214,21 +214,6 @@ class RepeatOrderForm extends Form
         }
         Director::redirect(RepeatOrdersPage::get_repeat_order_link('view', $repeatOrder->ID));
         return true;
-    }
-
-    public function complexTableField($controller)
-    {
-        $t = new HasManyComplexTableField(
-            $controller,
-            $name = "OrderItems",
-            $sourceClass = "RepeatOrder_OrderItem",
-            $fieldList = array("Quantity" => "Quantity"),
-            $detailFormFields = null,
-            $sourceFilter = "RepeatOrder_OrderItem.OrderID = ".$controller->ID,
-            $sourceSort = "",
-            $sourceJoin = ""
-        );
-        return $t;
     }
 
     private function array_unshift_assoc(&$arr, $key, $val)

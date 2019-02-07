@@ -26,7 +26,7 @@ class RepeatOrderModifier extends OrderModifier
 
     public function getModifierForm($optionalController = null, $optionalValidator = null)
     {
-        $fields = new FieldSet();
+        $fields = new FieldList();
         $fields->push($this->headingField());
         $fields->push($this->descriptionField());
         $orderID = Session::get('RepeatOrder');
@@ -38,14 +38,14 @@ class RepeatOrderModifier extends OrderModifier
             if ($order->CanModify()) {
                 $fields->push(new LiteralField('modifyRepeatOrder',
 <<<HTML
-					<div class="Actions"><input id="ModifyRepeatOrderUpdate"  class="action" type="button" value="Save changes to your Repeat Order #$orderID" onclick="window.location='{$updateLink}';" /></div>
+                    <div class="Actions"><input id="ModifyRepeatOrderUpdate"  class="action" type="button" value="Save changes to your Repeat Order #$orderID" onclick="window.location='{$updateLink}';" /></div>
 HTML
                     )
                 );
             } else {
                 $fields->push(new LiteralField('createRepeatOrder',
 <<<HTML
-						<div class="Actions"><input id="ModifyRepeatOrderCreate" class="action" type="button" value="Create a new Repeat Order" onclick="window.location='{$createLink}';" /></div>
+                        <div class="Actions"><input id="ModifyRepeatOrderCreate" class="action" type="button" value="Create a new Repeat Order" onclick="window.location='{$createLink}';" /></div>
 HTML
                     )
                 );
@@ -55,7 +55,7 @@ HTML
             if (!Session::get("DraftOrderID")) {
                 $fields->push(new LiteralField('createRepeatOrder',
 <<<HTML
-					<div class="Actions"><input  id="ModifyRepeatOrderCreate" class="action" type="button" value="Turn this Order into a Repeat Order" onclick="window.location='{$createLink}';" /></div>
+                    <div class="Actions"><input  id="ModifyRepeatOrderCreate" class="action" type="button" value="Turn this Order into a Repeat Order" onclick="window.location='{$createLink}';" /></div>
 HTML
                     )
                 );
@@ -63,14 +63,14 @@ HTML
                 if ($page) {
                     $fields->push(new LiteralField("whatAreRepeatOrders",
 <<<HTML
-					<div id="WhatAreRepeatOrders">$page->WhatAreRepeatOrders</div>
+                    <div id="WhatAreRepeatOrders">$page->WhatAreRepeatOrders</div>
 HTML
                     ));
                 }
             } else {
                 $fields->push(new LiteralField("whatAreRepeatOrders",
 <<<HTML
-					<div id="WhatAreRepeatOrders">This order is based on a Repeat Order.</div>
+                    <div id="WhatAreRepeatOrders">This order is based on a Repeat Order.</div>
 HTML
                     ));
             }
@@ -79,12 +79,17 @@ HTML
             if ($page) {
                 $fields->push(new LiteralField("whatAreRepeatOrders",
 <<<HTML
-					<div id="WhatAreRepeatOrders">$page->OnceLoggedInYouCanCreateRepeatOrder</div>
+                    <div id="WhatAreRepeatOrders">$page->OnceLoggedInYouCanCreateRepeatOrder</div>
 HTML
                 ));
             }
         }
-        return new RepeatOrderModifier_Form($optionalController, 'RepeatOrderModifier', $fields, new FieldSet(), $optionalValidator);
+        return new RepeatOrderModifierForm(
+            $optionalController,
+            'RepeatOrderModifier',
+            $fields,
+            new FieldList(), 
+            $optionalValidator);
     }
 
     public function LiveCalculatedTotal()
@@ -119,22 +124,5 @@ HTML
                 "Link" => RepeatOrdersPage::get_repeat_order_link("createorder", $this->Order()->ID)
             );
         }
-    }
-}
-
-
-class RepeatOrderModifier_Form extends OrderModifierForm
-{
-    /**
-     *
-     */
-    public function __construct($optionalController = null, $name, FieldSet $fields, FieldSet $actions, $optionalValidator = null)
-    {
-        parent::__construct($optionalController, $name, $fields, $actions, $optionalValidator);
-        Requirements::javascript("ecommerce_modifier_example/javascript/ModifierExample.js");
-    }
-
-    public function submit($data, $form)
-    {
     }
 }

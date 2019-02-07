@@ -1,5 +1,8 @@
 RepeatOrder:
-	minimum_days_in_the_future: 1
-	period_fields: {'1 week': 'Weekly', '2 weeks': 'Fornightly', '1 month': 'Monthly'}
-	delivery_days: []
-	payment_methods: []
+  minimum_days_in_the_future: 1
+  period_fields: {
+    '1 week': 'Weekly'
+    '2 weeks': 'Fornightly'
+    '1 month': 'Monthly'
+  delivery_days: []
+  payment_methods: []

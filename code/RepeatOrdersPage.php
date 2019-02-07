@@ -13,7 +13,7 @@ class RepeatOrdersPage extends AccountPage
     /**
      * Standard SS method
      */
-    public static $db = array(
+    private static $db = array(
         "OrderDays" => "Varchar(255)", //days of the week that can be ordered.
         "WhatAreRepeatOrders" => "HTMLText", // explanation of repeat orders in general
         "OnceLoggedInYouCanCreateRepeatOrder" => "HTMLText" //explaining the benefits of logging in for Repeat Orders
@@ -22,7 +22,7 @@ class RepeatOrdersPage extends AccountPage
     /**
      * Standard SS method
      */
-    protected static $week_days = array(
+    private static $week_days = array(
         "Monday" => "Monday",
         "Tuesday" => "Tuesday",
         "Wednesday" => "Wednesday",
@@ -77,11 +77,9 @@ class RepeatOrdersPage extends AccountPage
     public function RepeatOrders()
     {
         $memberID = Member::currentUserID();
-        return DataObject::get(
-            'RepeatOrder',
-            "\"MemberID\" = '$memberID' AND \"Status\" NOT IN ('MemberCancelled', 'AdminCancelled')",
-            "\"Created\" DESC"
-        );
+        return RepeatOrder::get()
+            ->where("\"MemberID\" = '$memberID' AND \"Status\" NOT IN ('MemberCancelled', 'AdminCancelled')")
+            ->sort("\"Created\" DESC");
     }
 
     /**
@@ -243,28 +241,5 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller
         } else {
             user_error("Could not find order");
         }
-    }
-
-
-    /**
-     * Show a list of all repeating orders.
-     * @return HTML
-     */
-    public function admin()
-    {
-        $shopAdminCode = EcommerceConfig::get("EcommerceRole", "admin_permission_code");
-        if (!Permission::check("ADMIN") && !Permission::check($shopAdminCode)) {
-            return Security::permissionFailure($this, _t('OrderReport.PERMISSIONFAILURE', 'Sorry you do not have permission for this function. Please login as an Adminstrator'));
-        }
-        RepeatOrder::create_automatically_created_orders();
-        $params = array(
-            "AllRepeatOrders" => DataObject::get("RepeatOrder", "\"Status\" = 'Active'")
-        );
-        Requirements::javascript(THIRDPARTY_DIR."/jquery/jquery.js");
-        //Requirements::block(THIRDPARTY_DIR."/jquery/jquery.js");
-        //Requirements::javascript(Director::protocol()."ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js");
-        Requirements::javascript("ecommerce_repeatorders/javascript/RepeatOrdersPage_admin.js");
-        Requirements::themedCSS("RepeatOrdersPage_admin");
-        return $this->renderWith(array('RepeatOrdersPage_admin', 'Page'), $params);
     }
 }

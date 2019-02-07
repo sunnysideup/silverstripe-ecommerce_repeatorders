@@ -12,20 +12,12 @@ class RepeatOrder extends DataObject
      * Minimum of days in the future that the order is lodged.
      * @var int
      */
-    protected static $minimum_days_in_the_future = 1;
-    public static function set_minimum_days_in_the_future($v)
-    {
-        self::$minimum_days_in_the_future = intval($v);
-    }
-    public static function get_minimum_days_in_the_future()
-    {
-        return self::$minimum_days_in_the_future;
-    }
+    private static $minimum_days_in_the_future = 1;
 
     /**
      * Standard SS variable
      */
-    public static $db = array(
+    private static $db = array(
         'Status' => "Enum('Pending, Active, MemberCancelled, AdminCancelled, Finished', 'Pending')",
         //dates
         'Start' => 'Date',
@@ -44,7 +36,7 @@ class RepeatOrder extends DataObject
     /**
      * Standard SS variable
      */
-    public static $has_one = array(
+    private static $has_one = array(
         'Member' => 'Member',
         'OriginatingOrder' => 'Order'
     );
@@ -53,7 +45,7 @@ class RepeatOrder extends DataObject
     /**
      * Standard SS variable
      */
-    public static $has_many = array(
+    private static $has_many = array(
         'OrderItems' => 'RepeatOrder_OrderItem', //products & quanitites
         'Orders' => 'Order'
     );
@@ -61,14 +53,14 @@ class RepeatOrder extends DataObject
     /**
      * Standard SS variable.
      */
-    public static $indexes = array(
+    private static $indexes = array(
         "Status" => true
     );
 
     /**
      * Standard SS variable
      */
-    public static $casting = array(
+    private static $casting = array(
         "OrderItemList" => "Text",
         "FirstOrderDate" => "Date",
         "LastOrderDate" => "Date",
@@ -82,17 +74,17 @@ class RepeatOrder extends DataObject
     /**
      * Standard SS variable
      */
-    public static $searchable_fields = array(
+    private static $searchable_fields = array(
         "ItemsForSearchPurposes" => "PartialMatchFilter",
-        "Period",
-        "DeliveryDay",
-        "Status"
+        "Period" => "ExactMatchFilter",
+        "DeliveryDay" => "ExactMatchFilter",
+        "Status" => "ExactMatchFilter"
     );
 
     /**
      * Standard SS variable
      */
-    public static $summary_fields = array(
+    private static $summary_fields = array(
         'ID' => 'Repeat Order ID',
         'Member.Surname' => 'Surname',
         'Member.Email' => 'Email',
@@ -107,14 +99,14 @@ class RepeatOrder extends DataObject
     /**
      * Standard SS variable
      */
-    public static $default_sort = 'Created DESC';
+    private static $default_sort = 'Created DESC';
 
 
     /**
      * Dropdown options for Period
      * @var array 'strtotime period' > 'nice name'
      */
-    protected static $period_fields = array(
+    private static $period_fields = array(
         '1 day' => 'Daily',
         '1 week' => 'Weekly',
         '2 weeks' => 'Fornightly',
@@ -146,7 +138,7 @@ class RepeatOrder extends DataObject
     /**
      * @array
      */
-    protected static $status_nice = array(
+    private static $status_nice = array(
         'Pending' => 'Pending',
         'Active' => 'Active',
         'MemberCancelled' => 'Pending Cancellation',
@@ -157,7 +149,7 @@ class RepeatOrder extends DataObject
     /**
      * @var array
      */
-    protected static $delivery_days = array(
+    private static $delivery_days = array(
         'Monday',
         'Tuesday',
         'Wednesday',
@@ -166,11 +158,11 @@ class RepeatOrder extends DataObject
         'Saturday',
         'Sunday',
     );
-    public static function set_delivery_days($a)
+    private static function set_delivery_days($a)
     {
         self::$delivery_days = $a;
     }
-    public static function get_delivery_days()
+    private static function get_delivery_days()
     {
         $array = array();
         $page = DataObject::get_one("RepeatOrdersPage");
@@ -485,11 +477,11 @@ class RepeatOrder extends DataObject
 
     /**
      * CMS Fields to adding via ModelAdmin
-     * @return FieldSet
+     * @return FieldList
      */
     public function getCMSFields_add()
     {
-        $fields = new FieldSet(
+        $fields = new FieldList(
             new TabSet('Root',
                 new Tab('Main',
                     new ListboxField('PaymentMethod', 'Payment Method', self::get_payment_methods(), null, count(self::get_payment_methods())),
@@ -516,7 +508,7 @@ class RepeatOrder extends DataObject
 
     /**
      * CMS Fields to adding via ModelAdmin
-     * @return FieldSet
+     * @return FieldList
      */
     public function getCMSFields_edit()
     {
@@ -543,19 +535,19 @@ class RepeatOrder extends DataObject
         if (!$this->DeliveryDay) {
             $firstCreated = $finalCreated = $lastCreated = $nextCreated = "Please select a delivery day first.";
         }
-        $fields = new FieldSet(
+        $fields = new FieldList(
             new TabSet('Root',
                 new Tab('Main',
                     new LiteralField('Readonly[ID]', '<p>Repeat Order Number: '.$this->ID.'</p>'),
                     new LiteralField('Readonly[Member]',
 <<<HTML
-	<div class="field readonly " id="Readonly[Member]">
-		<label for="Form_EditForm_Readonly-Member" class="left">Member</label>
-		<div class="middleColumn">
-			<span class="readonly" id="Form_EditForm_Readonly-Member">{$this->Member()->getTitle()} ({$this->Member()->Email}) </span>
-			<input type="hidden" value="{$this->Member()->getTitle()} ({$this->Member()->Email})" name="Readonly[Member]"/>
-		</div>
-	</div>
+    <div class="field readonly " id="Readonly[Member]">
+        <label for="Form_EditForm_Readonly-Member" class="left">Member</label>
+        <div class="middleColumn">
+            <span class="readonly" id="Form_EditForm_Readonly-Member">{$this->Member()->getTitle()} ({$this->Member()->Email}) </span>
+            <input type="hidden" value="{$this->Member()->getTitle()} ({$this->Member()->Email})" name="Readonly[Member]"/>
+        </div>
+    </div>
 HTML
                     ),
                     new DropdownField('Status', 'Status', self::$status_nice),
@@ -598,11 +590,11 @@ HTML
 
     /**
      * CMS Fields for Popup
-     * @return FieldSet
+     * @return FieldList
      */
     public function getCMSFields_forPopup()
     {
-        $fields = new FieldSet(
+        $fields = new FieldList(
             new TabSet('Root',
                 new Tab('Main',
                     new ReadonlyField('Readonly[Member]', 'Member', $this->Member()->getTitle().' ('.$this->Member()->Email.')'),
@@ -939,98 +931,5 @@ HTML
         } else {
             return false;
         }
-    }
-}
-
-class RepeatOrder_OrderItem extends DataObject
-{
-    public static $db = array(
-        'Quantity' => 'Int'
-    );
-
-    public static $has_one = array(
-        'Product' => 'Product',
-        'Order' => 'RepeatOrder',
-        'Alternative1' => 'Product',
-        'Alternative2' => 'Product',
-        'Alternative3' => 'Product',
-        'Alternative4' => 'Product',
-        'Alternative5' => 'Product'
-    );
-
-    public function getCMSFields()
-    {
-        $fields = parent::getCMSFields();
-        return $fields;
-    }
-
-    public function Title()
-    {
-        if ($product = $this->Product()) {
-            return $product->Title;
-        }
-        return "NOT FOUND";
-    }
-
-    public function BuyableTitle()
-    {
-        if ($product = $this->Product()) {
-            return $product->Title;
-        }
-        return "NOT FOUND";
-    }
-
-    /**
-     * returns a link to the product
-     * @return String
-     */
-    public function Link()
-    {
-        if ($product = $this->Product()) {
-            return $product->Link;
-        }
-        return "";
-    }
-
-    /**
-     * returns the product ID
-     * @return String
-     */
-    public function getProductID()
-    {
-        if ($product = $this->Product()) {
-            return $product->ID;
-        }
-        return 0;
-    }
-
-    /**
-     * Alias for AlternativesPerProduct
-     */
-    public function TableAlternatives()
-    {
-        return $this->AlternativesPerProduct();
-    }
-
-    /**
-     * returns a list of alternatives per product (if any)
-     * @return NULL | DataObjectSet
-     */
-    public function AlternativesPerProduct()
-    {
-        $dos = new DataObjectSet();
-        for ($i = 1; $i < 6; $i++) {
-            $alternativeField = "Alternative".$i."ID";
-            if ($this->$alternativeField) {
-                $product = DataObject::get_by_id("Product", $this->$alternativeField);
-                if ($product) {
-                    $dos->push($product);
-                }
-            }
-        }
-        if ($dos && $dos->count()) {
-            return $dos;
-        }
-        return null;
     }
 }
