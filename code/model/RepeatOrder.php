@@ -17,7 +17,7 @@ class RepeatOrder extends DataObject
     /**
      * Standard SS variable
      */
-    private static $db = array(
+    private static $db = [
         'Status' => "Enum('Pending, Active, MemberCancelled, AdminCancelled, Finished', 'Pending')",
         //dates
         'Start' => 'Date',
@@ -31,36 +31,36 @@ class RepeatOrder extends DataObject
         //computed values and notes
         'ItemsForSearchPurposes' => 'Text', //FOR SEARCH PURPOSES ONLY!
         'Notes' => 'Text'
-    );
+    ];
 
     /**
      * Standard SS variable
      */
-    private static $has_one = array(
+    private static $has_one = [
         'Member' => 'Member',
         'OriginatingOrder' => 'Order'
-    );
+    ];
 
 
     /**
      * Standard SS variable
      */
-    private static $has_many = array(
+    private static $has_many = [
         'OrderItems' => 'RepeatOrder_OrderItem', //products & quanitites
         'Orders' => 'Order'
-    );
+    ];
 
     /**
      * Standard SS variable.
      */
-    private static $indexes = array(
+    private static $indexes = [
         "Status" => true
-    );
+    ];
 
     /**
      * Standard SS variable
      */
-    private static $casting = array(
+    private static $casting = [
         "OrderItemList" => "Text",
         "FirstOrderDate" => "Date",
         "LastOrderDate" => "Date",
@@ -68,23 +68,23 @@ class RepeatOrder extends DataObject
         "NextOrderDate" => "Date",
         "FinalOrderDate" => "Date",
         "DeliverySchedule" => "Text"
-    );
+    ];
 
 
     /**
      * Standard SS variable
      */
-    private static $searchable_fields = array(
+    private static $searchable_fields = [
         "ItemsForSearchPurposes" => "PartialMatchFilter",
         "Period" => "ExactMatchFilter",
         "DeliveryDay" => "ExactMatchFilter",
         "Status" => "ExactMatchFilter"
-    );
+    ];
 
     /**
      * Standard SS variable
      */
-    private static $summary_fields = array(
+    private static $summary_fields = [
         'ID' => 'Repeat Order ID',
         'Member.Surname' => 'Surname',
         'Member.Email' => 'Email',
@@ -94,7 +94,7 @@ class RepeatOrder extends DataObject
         'Period' => 'Period',
         'DeliveryDay' => 'Delivery Day',
         'Status' => 'Status'
-    );
+    ];
 
     /**
      * Standard SS variable
@@ -106,20 +106,23 @@ class RepeatOrder extends DataObject
      * Dropdown options for Period
      * @var array 'strtotime period' > 'nice name'
      */
-    private static $period_fields = array(
+    private static $period_fields = [
         '1 day' => 'Daily',
         '1 week' => 'Weekly',
         '2 weeks' => 'Fornightly',
         '1 month' => 'Monthly'
-    );
+    ];
+
     public static function set_period_fields($array)
     {
         self::$period_fields = $array;
     }
+
     public static function get_period_fields()
     {
         return self::$period_fields;
     }
+
     public static function default_period_key()
     {
         if ($a = self::get_period_fields()) {
@@ -267,7 +270,7 @@ class RepeatOrder extends DataObject
     public function AutomaticallyCreatedOrders()
     {
         $orders = DataObject::get("Order", "RepeatOrderID = ".$this->ID, "OrderDate ASC");
-        $dos = new DataObjectSet();
+        $dos = DataObjectSet();
         if ($orders) {
             foreach ($orders as $order) {
                 $dos->push($order);
@@ -345,7 +348,7 @@ class RepeatOrder extends DataObject
         if ($order = DataObject::get_one("Order", "\"OrderDateInteger\" = '".$orderDateInteger."' AND \"RepeatOrderID\" = ".$this->ID)) {
             //do nothing
         } else {
-            $order = new Order();
+            $order = Order();
             $order->OrderDate = date("Y-m-d", $orderDateInteger);
             $order->OrderDateInteger = $orderDateInteger;
             $order->RepeatOrderID = $this->ID;
@@ -376,7 +379,7 @@ class RepeatOrder extends DataObject
                         }
                         //END CHECK AVAILABILITY
                         if ($product) {
-                            $newProductOrderItem = new Product_OrderItem();
+                            $newProductOrderItem = Product_OrderItem();
                             $newProductOrderItem->addBuyableToOrderItem($product, $repeatOrderOrderItem->Quantity);
                             $newProductOrderItem->OrderID = $order->ID;
                             $newProductOrderItem->write();
@@ -402,7 +405,7 @@ class RepeatOrder extends DataObject
      */
     public static function create_repeat_order_from_order(Order $Order)
     {
-        $repeatOrder = new RepeatOrder();
+        $repeatOrder = RepeatOrder();
         $repeatOrder->Status = 'Pending';
         $repeatOrder->MemberID = $Order->MemberID;
         $repeatOrder->write();
@@ -411,7 +414,7 @@ class RepeatOrder extends DataObject
             foreach ($orderItems as $orderItem) {
                 $buyable = $orderItem->Buyable();
                 if ($buyable && $buyable instanceof Product) {
-                    $repeatOrder_orderItem = new RepeatOrder_OrderItem();
+                    $repeatOrder_orderItem = RepeatOrder_OrderItem();
                     $repeatOrder_orderItem->OrderID = $repeatOrder->ID;
                     $repeatOrder_orderItem->ProductID = $orderItem->BuyableID;
                     $repeatOrder_orderItem->Quantity = $orderItem->Quantity;
@@ -481,14 +484,14 @@ class RepeatOrder extends DataObject
      */
     public function getCMSFields_add()
     {
-        $fields = new FieldList(
-            new TabSet('Root',
-                new Tab('Main',
-                    new ListboxField('PaymentMethod', 'Payment Method', self::get_payment_methods(), null, count(self::get_payment_methods())),
-                    new DateField('Start', 'Start'),
-                    new DateField('End', 'End (Optional)'),
-                    new ListboxField('Period', 'Period', self::get_period_fields(), null, count(self::get_period_fields())),
-                    new ListboxField(
+        $fields = FieldList::create(
+            TabSet::create('Root',
+                Tab::create('Main',
+                    ListboxField::create('PaymentMethod', 'Payment Method', self::get_payment_methods(), null, count(self::get_payment_methods())),
+                    DateField::create('Start', 'Start'),
+                    DateField::create('End', 'End (Optional)'),
+                    ListboxField::create('Period', 'Period', self::get_period_fields(), null, count(self::get_period_fields())),
+                    ListboxField::create(
                         'DeliveryDay',
                         'Delivery day:',
                         $source = array_combine(
@@ -499,7 +502,7 @@ class RepeatOrder extends DataObject
                         7,
                         false
                     ),
-                    new TextareaField('Notes', 'Notes')
+                    TextareaField::create('Notes', 'Notes')
                 )
             )
         );
@@ -535,11 +538,11 @@ class RepeatOrder extends DataObject
         if (!$this->DeliveryDay) {
             $firstCreated = $finalCreated = $lastCreated = $nextCreated = "Please select a delivery day first.";
         }
-        $fields = new FieldList(
-            new TabSet('Root',
-                new Tab('Main',
-                    new LiteralField('Readonly[ID]', '<p>Repeat Order Number: '.$this->ID.'</p>'),
-                    new LiteralField('Readonly[Member]',
+        $fields = FieldList::create(
+            TabSet::create('Root',
+                Tab::create('Main',
+                    LiteralField::create('Readonly[ID]', '<p>Repeat Order Number: '.$this->ID.'</p>'),
+                    LiteralField::create('Readonly[Member]',
 <<<HTML
     <div class="field readonly " id="Readonly[Member]">
         <label for="Form_EditForm_Readonly-Member" class="left">Member</label>
@@ -550,11 +553,11 @@ class RepeatOrder extends DataObject
     </div>
 HTML
                     ),
-                    new DropdownField('Status', 'Status', self::$status_nice),
-                    new DateField('Start', 'Start'),
-                    new DateField('End', 'End (Optional)'),
-                    new ListboxField('Period', 'Period', self::get_period_fields(), null, count(self::get_period_fields())),
-                    new ListboxField(
+                    DropdownField::create('Status', 'Status', self::$status_nice),
+                    DateField::create('Start', 'Start'),
+                    DateField::create('End', 'End (Optional)'),
+                    ListboxField::create('Period', 'Period', self::get_period_fields(), null, count(self::get_period_fields())),
+                    ListboxField::create(
                         'DeliveryDay',
                         'Delivery day:',
                         array_combine(
@@ -565,23 +568,23 @@ HTML
                         7,
                         false
                     ),
-                    new TextareaField('Notes', 'Notes')
+                    TextareaField::create('Notes', 'Notes')
                 ),
-                new Tab('Products',
+                Tab::create('Products',
                     $this->getCMSProductsTable()
                 ),
-                new Tab('Orders',
+                Tab::create('Orders',
                     $this->getCMSPreviousOrders(),
-                    new ReadonlyField("DeliveryScheduleFormatted", "Delivery Schedule", $this->DeliverySchedule()),
-                    new ReadonlyField("FirstCreatedFormatted", "First Order", $firstCreated),
-                    new ReadonlyField("LastCreatedFormatted", "Last Order", $lastCreated),
-                    new ReadonlyField("NextCreatedFormatted", "Next Order", $nextCreated),
-                    new ReadonlyField("FinalCreatedFormatted", "Final Order", $finalCreated)
+                    ReadonlyField::create("DeliveryScheduleFormatted", "Delivery Schedule", $this->DeliverySchedule()),
+                    ReadonlyField::create("FirstCreatedFormatted", "First Order", $firstCreated),
+                    ReadonlyField::create("LastCreatedFormatted", "Last Order", $lastCreated),
+                    ReadonlyField::create("NextCreatedFormatted", "Next Order", $nextCreated),
+                    ReadonlyField::create("FinalCreatedFormatted", "Final Order", $finalCreated)
                 ),
-                new Tab('Payment',
-                    new CheckboxField("CreditCardOnFile", "Credit Card on File"),
-                    new ListboxField('PaymentMethod', 'Payment Method', self::get_payment_methods(), null, count(self::get_payment_methods())),
-                    new TextareaField('PaymentNote', 'Payment Note')
+                Tab::create('Payment',
+                    CheckboxField::create("CreditCardOnFile", "Credit Card on File"),
+                    ListboxField::create('PaymentMethod', 'Payment Method', self::get_payment_methods(), null, count(self::get_payment_methods())),
+                    TextareaField::create('PaymentNote', 'Payment Note')
                 )
             )
         );
@@ -594,19 +597,19 @@ HTML
      */
     public function getCMSFields_forPopup()
     {
-        $fields = new FieldList(
-            new TabSet('Root',
-                new Tab('Main',
-                    new ReadonlyField('Readonly[Member]', 'Member', $this->Member()->getTitle().' ('.$this->Member()->Email.')'),
-                    new DropdownField('Status', 'Status', self::$status_nice),
-                    new ListboxField('PaymentMethod', 'Payment Method', self::get_payment_methods(), null, count(self::get_payment_methods())),
-                    new DateField('Start', 'Start'),
-                    new DateField('End', 'End (Optional)'),
-                    new DropdownField('Period', 'Period', self::get_period_fields()),
-                    new TextField('DeliveryDay', 'Delivery Day'),
-                    new TextareaField('Notes', 'Notes')
+        $fields = FieldList::create(
+            TabSet::create('Root',
+                Tab::create('Main',
+                    ReadonlyField::create('Readonly[Member]', 'Member', $this->Member()->getTitle().' ('.$this->Member()->Email.')'),
+                    DropdownField::create('Status', 'Status', self::$status_nice),
+                    ListboxField::create('PaymentMethod', 'Payment Method', self::get_payment_methods(), null, count(self::get_payment_methods())),
+                    DateField::create('Start', 'Start'),
+                    DateField::create('End', 'End (Optional)'),
+                    DropdownField::create('Period', 'Period', self::get_period_fields()),
+                    TextField::create('DeliveryDay', 'Delivery Day'),
+                    TextareaField::create('Notes', 'Notes')
                 ),
-                new Tab('Products',
+                Tab::create('Products',
                     $this->getCMSProductsTable()
                 )
             )
@@ -622,7 +625,7 @@ HTML
      */
     public function getCMSPreviousOrders()
     {
-        $table = new ComplexTableField(
+        $table = ComplexTableField::create(
             $controller = $this,
             $name = "PreviousOrders",
             $sourceClass = "Order",
@@ -654,7 +657,7 @@ HTML
      */
     public function getCMSProductsTable()
     {
-        $table = new ComplexTableField(
+        $table = ComplexTableField::create(
             $this,
             'OrderItems',
             'RepeatOrder_OrderItem',

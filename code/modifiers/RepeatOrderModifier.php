@@ -26,7 +26,7 @@ class RepeatOrderModifier extends OrderModifier
 
     public function getModifierForm($optionalController = null, $optionalValidator = null)
     {
-        $fields = new FieldList();
+        $fields = FieldList::create();
         $fields->push($this->headingField());
         $fields->push($this->descriptionField());
         $orderID = Session::get('RepeatOrder');
@@ -36,14 +36,14 @@ class RepeatOrderModifier extends OrderModifier
             $updateLink = RepeatOrdersPage::get_repeat_order_link('update', $orderID);
             $cancelLink = RepeatOrdersPage::get_repeat_order_link('cancel', $orderID);
             if ($order->CanModify()) {
-                $fields->push(new LiteralField('modifyRepeatOrder',
+                $fields->push(LiteralField::create('modifyRepeatOrder',
 <<<HTML
                     <div class="Actions"><input id="ModifyRepeatOrderUpdate"  class="action" type="button" value="Save changes to your Repeat Order #$orderID" onclick="window.location='{$updateLink}';" /></div>
 HTML
                     )
                 );
             } else {
-                $fields->push(new LiteralField('createRepeatOrder',
+                $fields->push(LiteralField::create('createRepeatOrder',
 <<<HTML
                         <div class="Actions"><input id="ModifyRepeatOrderCreate" class="action" type="button" value="Create a new Repeat Order" onclick="window.location='{$createLink}';" /></div>
 HTML
@@ -88,7 +88,7 @@ HTML
             $optionalController,
             'RepeatOrderModifier',
             $fields,
-            new FieldList(), 
+            new FieldList(),
             $optionalValidator);
     }
 
