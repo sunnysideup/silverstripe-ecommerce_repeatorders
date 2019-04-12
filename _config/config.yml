@@ -1,0 +1,38 @@
+---
+Name: RepeatOrders
+---
+
+Order:
+    extensions:
+        - AutomaticallyCreatedOrderDecorator
+
+RepeatOrder:
+
+    minimum_days_in_the_future: 1
+
+    period_fields:
+        '1 week': 'Weekly'
+        '2 weeks': 'Fornightly'
+        '1 month': 'Monthly'
+
+    payment_methods:
+        - DirectCreditPayment': 'Direct Credit (payment into bank account)'
+
+    # schedule: []
+    #
+    # status_nice: [
+    #   'Pending': 'Pending'
+    #   'Active': 'Active'
+    #   'MemberCancelled': 'Pending Cancellation'
+    #   'AdminCancelled': 'Cancelled'
+    #   'Finished': 'Finished'
+    # ]
+RepeatOrdersPage:
+    week_days:
+        "Monday": "Monday"
+        "Tuesday": "Tuesday"
+        "Wednesday": "Wednesday"
+        "Thursday": "Thursday"
+        "Friday": "Friday"
+        "Saturday": "Saturday"
+        "Sunday": "Sunday"

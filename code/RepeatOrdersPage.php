@@ -14,7 +14,6 @@ class RepeatOrdersPage extends AccountPage
      * Standard SS method
      */
     private static $db = array(
-        "OrderDays" => "Varchar(255)", //days of the week that can be ordered.
         "WhatAreRepeatOrders" => "HTMLText", // explanation of repeat orders in general
         "OnceLoggedInYouCanCreateRepeatOrder" => "HTMLText" //explaining the benefits of logging in for Repeat Orders
     );
@@ -52,7 +51,11 @@ class RepeatOrdersPage extends AccountPage
      */
     public function canCreate($member = null)
     {
-        return !DataObject::get_one("RepeatOrdersPage");
+        if(DataObject::get_one("RepeatOrdersPage")) {
+            return false;
+        } else {
+            return parent::canCreate($member);
+        }
     }
 
 
@@ -62,7 +65,6 @@ class RepeatOrdersPage extends AccountPage
     public function getCMSFields()
     {
         $fields = parent::getCMSFields();
-        $fields->addFieldToTab("Root.Content.Settings", new TextField($name = "OrderDays", $title = "Order Weekdays - separated by comma, e.g. Monday, Tuesday, Wednesday"));
         $fields->addFieldToTab("Root.Content.ExplainingRepeatOrders", new HTMLEditorField($name = "WhatAreRepeatOrders", $title = "What Are Repeat Orders - Explanation Used throughout the site.", $rows = 3, $cols = 3));
         $fields->addFieldToTab("Root.Content.ExplainingRepeatOrders", new HTMLEditorField($name = "OnceLoggedInYouCanCreateRepeatOrder", $title = "Explanation for people who are not logged-in yet explaining that they can turn an order into a Repeat order...", $rows = 3, $cols = 3));
         return $fields;
@@ -72,7 +74,7 @@ class RepeatOrdersPage extends AccountPage
      * Returns all {@link Order} records for this
      * member that are completed.
      *
-     * @return DataObjectSet
+     * @return ArrayList
      */
     public function RepeatOrders()
     {
@@ -113,24 +115,5 @@ class RepeatOrdersPage extends AccountPage
     public function onBeforeWrite()
     {
         parent::onBeforeWrite();
-        $days = explode(",", $this->OrderDays);
-        $cleanDays = array();
-        if (count($days)) {
-            foreach ($days as $day) {
-                $day = trim($day);
-                if (count(self::$week_days)) {
-                    foreach (self::$week_days as $perfectDay) {
-                        if (strtolower($day)== strtolower($perfectDay)) {
-                            $cleanDays[$perfectDay] = $perfectDay;
-                        }
-                    }
-                }
-            }
-        }
-        if (count($cleanDays)) {
-            $this->OrderDays = implode(",", $cleanDays);
-        } else {
-            $this->OrderDays = implode(",", self::$week_days);
-        }
     }
 }

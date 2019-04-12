@@ -71,15 +71,15 @@ class RepeatOrder_OrderItem extends DataObject
 
     /**
      * returns a list of alternatives per product (if any)
-     * @return NULL | DataObjectSet
+     * @return ArrayList|null
      */
     public function AlternativesPerProduct()
     {
-        $dos = new DataObjectSet();
+        $dos = ArrayList::create();
         for ($i = 1; $i < 6; $i++) {
             $alternativeField = "Alternative".$i."ID";
             if ($this->$alternativeField) {
-                $product = DataObject::get_by_id("Product", $this->$alternativeField);
+                $product = DataObject::get_one("Product", ['ID' => $this->$alternativeField]);
                 if ($product) {
                     $dos->push($product);
                 }

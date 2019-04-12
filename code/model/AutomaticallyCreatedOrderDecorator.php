@@ -4,7 +4,7 @@
  * @author nicolaas @ sunnysideup . co . nz
  */
 
-class AutomaticallyCreatedOrderDecorator extends DataObjectDecorator
+class AutomaticallyCreatedOrderDecorator extends DataExtension
 {
     private static $db= [
         "OrderDate" => "Date", //date at which the order should be placed

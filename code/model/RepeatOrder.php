@@ -113,19 +113,9 @@ class RepeatOrder extends DataObject
         '1 month' => 'Monthly'
     ];
 
-    public static function set_period_fields($array)
-    {
-        self::$period_fields = $array;
-    }
-
-    public static function get_period_fields()
-    {
-        return self::$period_fields;
-    }
-
     public static function default_period_key()
     {
-        if ($a = self::get_period_fields()) {
+        if ($a = Config::inst()->get('RepeatOrder', 'period_fields')) {
             foreach ($a as $k => $v) {
                 return $k;
             }
@@ -135,7 +125,7 @@ class RepeatOrder extends DataObject
     /**
      * @var Array
      */
-    protected static $schedule = array();
+    private static $schedule = [];
 
 
     /**
@@ -149,44 +139,6 @@ class RepeatOrder extends DataObject
         'Finished' => 'Finished',
     );
 
-    /**
-     * @var array
-     */
-    private static $delivery_days = array(
-        'Monday',
-        'Tuesday',
-        'Wednesday',
-        'Thursday',
-        'Friday',
-        'Saturday',
-        'Sunday',
-    );
-    private static function set_delivery_days($a)
-    {
-        self::$delivery_days = $a;
-    }
-    private static function get_delivery_days()
-    {
-        $array = array();
-        $page = DataObject::get_one("RepeatOrdersPage");
-        if ($page) {
-            $array = explode(",", $page->OrderDays);
-        }
-        if (count($array)) {
-            return $array;
-        } else {
-            return self::$delivery_days;
-        }
-    }
-    public static function default_delivery_day_key()
-    {
-        $a = self::get_delivery_days();
-        if (count($a)) {
-            foreach ($a as $k => $v) {
-                return $k;
-            }
-        }
-    }
 
     /**
      * @var array
@@ -198,13 +150,10 @@ class RepeatOrder extends DataObject
     {
         self::$payment_methods = $a;
     }
-    public static function get_payment_methods()
-    {
-        return self::$payment_methods;
-    }
+
     public static function default_payment_method_key()
     {
-        $a = self::get_payment_methods();
+        $a = Config::inst()->get('RepeatOrder', 'payment_methods');
         foreach ($a as $k => $v) {
             return $k;
         }
@@ -269,8 +218,8 @@ class RepeatOrder extends DataObject
      */
     public function AutomaticallyCreatedOrders()
     {
-        $orders = DataObject::get("Order", "RepeatOrderID = ".$this->ID, "OrderDate ASC");
-        $dos = DataObjectSet();
+        $orders = Order::get()->filter(["RepeatOrderID" => $this->ID])->sort(["OrderDate" => "ASC"]);
+        $dos = ArrayList::create();
         if ($orders) {
             foreach ($orders as $order) {
                 $dos->push($order);
@@ -290,7 +239,7 @@ class RepeatOrder extends DataObject
     {
         set_time_limit(0); //might take a while with lots of orders
         //get all Repeat orders
-        $repeatOrders = DataObject::get('RepeatOrder', 'Status = \'Active\'');
+        $repeatOrders = RepeatOrder::get()->filter(['Status' => 'Active']);
         if ($repeatOrders) {
             foreach ($repeatOrders as $repeatOrder) {
                 $repeatOrder->addAutomaticallyCreatedOrders();
@@ -345,10 +294,13 @@ class RepeatOrder extends DataObject
      */
     protected function createOrderFromRepeatOrder($orderDateInteger)
     {
-        if ($order = DataObject::get_one("Order", "\"OrderDateInteger\" = '".$orderDateInteger."' AND \"RepeatOrderID\" = ".$this->ID)) {
+        $order = Order::get()
+            ->filter(["OrderDateInteger" => $orderDateInteger, "RepeatOrderID" => $this->ID])
+            ->first();
+        if ($order) {
             //do nothing
         } else {
-            $order = Order();
+            $order = Order::create();
             $order->OrderDate = date("Y-m-d", $orderDateInteger);
             $order->OrderDateInteger = $orderDateInteger;
             $order->RepeatOrderID = $this->ID;
@@ -357,29 +309,29 @@ class RepeatOrder extends DataObject
             $order->write();
             if ($this->OrderItems()) {
                 foreach ($this->OrderItems() as $repeatOrderOrderItem) {
-                    $product = DataObject::get_by_id('Product', $repeatOrderOrderItem->ProductID);
+                    $product = Product::get()->byID($repeatOrderOrderItem->ProductID);
                     if ($product) {
                         //START CHECK AVAILABILITY
-                        if (class_exists("ProductStockCalculatedQuantity")) {
-                            $numberAvailable = ProductStockCalculatedQuantity::get_quantity_by_product_id($product->ID);
-                            if ($numberAvailable < $repeatOrderOrderItem->Quantity) {
-                                $alternatives = $repeatOrderOrderItem->AlternativesPerProduct();
-                                $product = null;
-                                if ($dos) {
-                                    foreach ($alternatives as $alternative) {
-                                        $stillLookingForAlternative = true;
-                                        $numberAvailable = ProductStockCalculatedQuantity::get_quantity_by_product_id($alternative->ID);
-                                        if ($numberAvailable > $repeatOrderOrderItem->Quantity && $stillLookingForAlternative) {
-                                            $stillLookingForAlternative = false;
-                                            $product = $alternative;
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        // if (class_exists("ProductStockCalculatedQuantity")) {
+                        //     $numberAvailable = ProductStockCalculatedQuantity::get_quantity_by_product_id($product->ID);
+                        //     if ($numberAvailable < $repeatOrderOrderItem->Quantity) {
+                        //         $alternatives = $repeatOrderOrderItem->AlternativesPerProduct();
+                        //         $product = null;
+                        //         if ($dos) {
+                        //             foreach ($alternatives as $alternative) {
+                        //                 $stillLookingForAlternative = true;
+                        //                 $numberAvailable = ProductStockCalculatedQuantity::get_quantity_by_product_id($alternative->ID);
+                        //                 if ($numberAvailable > $repeatOrderOrderItem->Quantity && $stillLookingForAlternative) {
+                        //                     $stillLookingForAlternative = false;
+                        //                     $product = $alternative;
+                        //                 }
+                        //             }
+                        //         }
+                        //     }
+                        // }
                         //END CHECK AVAILABILITY
                         if ($product) {
-                            $newProductOrderItem = Product_OrderItem();
+                            $newProductOrderItem = Product_OrderItem::create();
                             $newProductOrderItem->addBuyableToOrderItem($product, $repeatOrderOrderItem->Quantity);
                             $newProductOrderItem->OrderID = $order->ID;
                             $newProductOrderItem->write();
@@ -487,20 +439,21 @@ class RepeatOrder extends DataObject
         $fields = FieldList::create(
             TabSet::create('Root',
                 Tab::create('Main',
-                    ListboxField::create('PaymentMethod', 'Payment Method', self::get_payment_methods(), null, count(self::get_payment_methods())),
+                    ListboxField::create(
+                        'PaymentMethod',
+                        'Payment Method',
+                        Config::inst()->get('RepeatOrder', 'payment_methods'),
+                        null,
+                        count(Config::inst()->get('RepeatOrder', 'payment_methods'))
+                     ),
                     DateField::create('Start', 'Start'),
                     DateField::create('End', 'End (Optional)'),
-                    ListboxField::create('Period', 'Period', self::get_period_fields(), null, count(self::get_period_fields())),
                     ListboxField::create(
-                        'DeliveryDay',
-                        'Delivery day:',
-                        $source = array_combine(
-                            self::get_delivery_days(),
-                            self::get_delivery_days()
-                        ),
-                        $this->DeliveryDay,
-                        7,
-                        false
+                        'Period',
+                        'Period',
+                        Config::inst()->get('RepeatOrder', 'period_fields'),
+                        null,
+                        count(Config::inst()->get('RepeatOrder', 'period_fields'))
                     ),
                     TextareaField::create('Notes', 'Notes')
                 )
@@ -539,10 +492,16 @@ class RepeatOrder extends DataObject
             $firstCreated = $finalCreated = $lastCreated = $nextCreated = "Please select a delivery day first.";
         }
         $fields = FieldList::create(
-            TabSet::create('Root',
-                Tab::create('Main',
-                    LiteralField::create('Readonly[ID]', '<p>Repeat Order Number: '.$this->ID.'</p>'),
-                    LiteralField::create('Readonly[Member]',
+            TabSet::create(
+                'Root',
+                Tab::create(
+                    'Main',
+                    LiteralField::create(
+                        'Readonly[ID]',
+                        '<p>Repeat Order Number: '.$this->ID.'</p>'
+                    ),
+                    LiteralField::create(
+                        'Readonly[Member]',
 <<<HTML
     <div class="field readonly " id="Readonly[Member]">
         <label for="Form_EditForm_Readonly-Member" class="left">Member</label>
@@ -556,24 +515,21 @@ HTML
                     DropdownField::create('Status', 'Status', self::$status_nice),
                     DateField::create('Start', 'Start'),
                     DateField::create('End', 'End (Optional)'),
-                    ListboxField::create('Period', 'Period', self::get_period_fields(), null, count(self::get_period_fields())),
                     ListboxField::create(
-                        'DeliveryDay',
-                        'Delivery day:',
-                        array_combine(
-                            self::get_delivery_days(),
-                            self::get_delivery_days()
-                        ),
-                        $this->DeliveryDay,
-                        7,
-                        false
+                        'Period',
+                        'Period',
+                        Config::inst()->get('RepeatOrder', 'period_fields'),
+                        null,
+                        count(Config::inst()->get('RepeatOrder', 'period_fields'))
                     ),
                     TextareaField::create('Notes', 'Notes')
                 ),
-                Tab::create('Products',
+                Tab::create(
+                    'Products',
                     $this->getCMSProductsTable()
                 ),
-                Tab::create('Orders',
+                Tab::create(
+                    'Orders',
                     $this->getCMSPreviousOrders(),
                     ReadonlyField::create("DeliveryScheduleFormatted", "Delivery Schedule", $this->DeliverySchedule()),
                     ReadonlyField::create("FirstCreatedFormatted", "First Order", $firstCreated),
@@ -581,9 +537,16 @@ HTML
                     ReadonlyField::create("NextCreatedFormatted", "Next Order", $nextCreated),
                     ReadonlyField::create("FinalCreatedFormatted", "Final Order", $finalCreated)
                 ),
-                Tab::create('Payment',
+                Tab::create(
+                    'Payment',
                     CheckboxField::create("CreditCardOnFile", "Credit Card on File"),
-                    ListboxField::create('PaymentMethod', 'Payment Method', self::get_payment_methods(), null, count(self::get_payment_methods())),
+                    ListboxField::create(
+                        'PaymentMethod',
+                        'Payment Method',
+                        Config::inst()->get('RepeatOrder', 'payment_methods'),
+                        null,
+                        count(Config::inst()->get('RepeatOrder', 'payment_methods'))
+                    ),
                     TextareaField::create('PaymentNote', 'Payment Note')
                 )
             )
@@ -602,10 +565,20 @@ HTML
                 Tab::create('Main',
                     ReadonlyField::create('Readonly[Member]', 'Member', $this->Member()->getTitle().' ('.$this->Member()->Email.')'),
                     DropdownField::create('Status', 'Status', self::$status_nice),
-                    ListboxField::create('PaymentMethod', 'Payment Method', self::get_payment_methods(), null, count(self::get_payment_methods())),
+                    ListboxField::create(
+                        'PaymentMethod',
+                        'Payment Method',
+                        Config::inst()->get('RepeatOrder', 'payment_methods'),
+                        null,
+                        count(Config::inst()->get('RepeatOrder', 'payment_methods'))
+                    ),
                     DateField::create('Start', 'Start'),
                     DateField::create('End', 'End (Optional)'),
-                    DropdownField::create('Period', 'Period', self::get_period_fields()),
+                    DropdownField::create(
+                        'Period',
+                        'Period',
+                        Config::inst()->get('RepeatOrder', 'period_fields')
+                    ),
                     TextField::create('DeliveryDay', 'Delivery Day'),
                     TextareaField::create('Notes', 'Notes')
                 ),
@@ -698,7 +671,7 @@ HTML
     }
     public function getOrderItemList()
     {
-        $a = array();
+        $a = [];
         if ($list = $this->OrderItems()) {
             foreach ($list as $item) {
                 $a[] = $item->Quantity . " x " . $item->Title();
@@ -852,7 +825,7 @@ HTML
     {
         //caching value for quicker response
         if (!isset(self::$schedule[$this->ID])) {
-            $a = array();
+            $a = [];
             if ($this->Period && $this->End && $this->Start && $this->DeliveryDay && $this->Status == "Active") {
                 $startTime = strtotime($this->Start);
                 if (Date("l", $startTime) == $this->DeliveryDay) {

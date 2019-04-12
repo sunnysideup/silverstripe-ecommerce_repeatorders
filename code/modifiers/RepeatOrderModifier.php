@@ -24,21 +24,21 @@ class RepeatOrderModifier extends OrderModifier
         return $this->Order()->Items() && $this->Order()->Items() && Member::currentUser();
     }
 
-    public function getModifierForm($optionalController = null, $optionalValidator = null)
+    public function getModifierForm(Controller $optionalController = NULL, Validator $optionalValidator = NULL)
     {
         $fields = FieldList::create();
         $fields->push($this->headingField());
         $fields->push($this->descriptionField());
-        $orderID = Session::get('RepeatOrder');
+        $repeatOrderID = Session::get('RepeatOrder');
         $createLink = RepeatOrdersPage::get_repeat_order_link('createorder');
-        if ($orderID && Member::currentMember()) {
-            $order = DataObject::get_by_id('RepeatOrder', $orderID);
-            $updateLink = RepeatOrdersPage::get_repeat_order_link('update', $orderID);
-            $cancelLink = RepeatOrdersPage::get_repeat_order_link('cancel', $orderID);
+        if ($repeatOrderID && Member::currentMember()) {
+            $order = DataObject::get_one('RepeatOrder', ['ID' => $repeatOrderID]);
+            $updateLink = RepeatOrdersPage::get_repeat_order_link('update', $repeatOrderID);
+            $cancelLink = RepeatOrdersPage::get_repeat_order_link('cancel', $repeatOrderID);
             if ($order->CanModify()) {
                 $fields->push(LiteralField::create('modifyRepeatOrder',
 <<<HTML
-                    <div class="Actions"><input id="ModifyRepeatOrderUpdate"  class="action" type="button" value="Save changes to your Repeat Order #$orderID" onclick="window.location='{$updateLink}';" /></div>
+                    <div class="Actions"><input id="ModifyRepeatOrderUpdate"  class="action" type="button" value="Save changes to your Repeat Order #$repeatOrderID" onclick="window.location='{$updateLink}';" /></div>
 HTML
                     )
                 );
