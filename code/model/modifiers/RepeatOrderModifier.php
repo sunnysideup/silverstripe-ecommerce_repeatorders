@@ -31,7 +31,7 @@ class RepeatOrderModifier extends OrderModifier
         $fields->push($this->descriptionField());
         $repeatOrderID = Session::get('RepeatOrder');
         $createLink = RepeatOrdersPage::get_repeat_order_link('createorder');
-        if ($repeatOrderID && Member::currentMember()) {
+        if ($repeatOrderID && Member::currentUser()) {
             $repeatOrder = DataObject::get_one('RepeatOrder', ['ID' => $repeatOrderID]);
             $updateLink = RepeatOrdersPage::get_repeat_order_link('update', $repeatOrderID);
             $cancelLink = RepeatOrdersPage::get_repeat_order_link('cancel', $repeatOrderID);
@@ -51,7 +51,7 @@ HTML
                 );
             }
             Requirements::customScript("jQuery(document).ready(function(){jQuery(\"input[name='action_processOrder']\").hide();});", "hide_action_processOrder");
-        } elseif (Member::currentMember()) {
+        } elseif (Member::currentUser()) {
             if (!Session::get("DraftOrderID")) {
                 $fields->push(new LiteralField('createRepeatOrder',
 <<<HTML

@@ -119,6 +119,19 @@ class RepeatOrdersPage extends AccountPage
 
 class RepeatOrdersPage_Controller extends AccountPage_Controller
 {
+
+    /**
+     * Defines methods that can be called directly
+     * @var array
+     */
+    private static $allowed_actions = array(
+        'createorder' => true,
+        'cancel' => true,
+        'view' => true,
+        'modify' => true,
+        'admin' => true
+    );
+
     public function init()
     {
         parent::init();

@@ -32,7 +32,7 @@ class RepeatOrderForm extends Form
         if ($items) {
             $fields->push(HeaderField::create('ProductsHeader', 'Products'));
             $products = Product::get()->filter('Product', "\"AllowPurchase\" = 1");
-            $productsMap = $products->map('ID', 'Title');
+            $productsMap = $products->map('ID', 'Title')->toArray();
             $this->array_unshift_assoc($productsMap, 0, "--- Please select ---");
             foreach ($productsMap as $id => $title) {
                 if ($product = DataObject::get_one('Product', ["ID" => $id])) {

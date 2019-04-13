@@ -25,7 +25,7 @@ class AutomaticallyCreatedOrderDecorator extends DataExtension
         ]
     ];
 
-    public function updateCMSFields(&$fields)
+    public function updateCMSFields(FieldList $fields)
     {
         $fields->removeByName("OrderDate");
         $fields->removeByName("OrderDateInteger");
