@@ -39,19 +39,19 @@ class RepeatOrder_OrderItem extends DataObject
 
     /**
      * returns a link to the product
-     * @return String
+     * @return string
      */
     public function Link()
     {
         if ($product = $this->Product()) {
             return $product->Link;
         }
-        return "";
+        return '';
     }
 
     /**
      * returns the product ID
-     * @return String
+     * @return string
      */
     public function getProductID()
     {

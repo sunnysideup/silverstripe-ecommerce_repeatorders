@@ -104,7 +104,7 @@ class RepeatOrderForm extends Form
         }
 
         //required fields
-        $requiredArray = array('Start', 'End', 'Period', 'DeliveryDay');
+        $requiredArray = array('Start', 'End', 'Period');
         $requiredFields = RequiredFields::create($requiredArray);
 
         //make form
@@ -112,17 +112,25 @@ class RepeatOrderForm extends Form
 
         //load data
         if ($repeatOrder) {
-            $this->loadDataFrom(array(
-                'Start' => $repeatOrder->Start,
-                'End' => $repeatOrder->End,
-                'Period' => $repeatOrder->Period,
-                'Notes' => $repeatOrder->Notes,
-                'DeliveryDay' => $repeatOrder->DeliveryDay,
-                'PaymentMethod' => $repeatOrder->PaymentMethod,
-            ));
+            $this->loadDataFrom(
+                [
+                    'Start' => $repeatOrder->Start,
+                    'End' => $repeatOrder->End,
+                    'Period' => $repeatOrder->Period,
+                    'Notes' => $repeatOrder->Notes,
+                    'PaymentMethod' => $repeatOrder->PaymentMethod,
+                ]
+            );
         }
     }
 
+    /**
+     * same as save!
+     * @param  [type] $data    [description]
+     * @param  [type] $form    [description]
+     * @param  [type] $request [description]
+     * @return [type]          [description]
+     */
     public function doCreate($data, $form, $request)
     {
         return $this->doSave($data, $form, $request);
@@ -186,11 +194,6 @@ class RepeatOrderForm extends Form
             } else {
                 $data['Period'] = RepeatOrder::default_period_key();
             }
-            if (isset($data['DeliveryDay'])) {
-                $params['DeliveryDay'] = $data['DeliveryDay'];
-            } else {
-                $data['DeliveryDay'] = RepeatOrder::default_delivery_day_key();
-            }
             if (isset($data['PaymentMethod'])) {
                 $params['PaymentMethod'] = $data['PaymentMethod'];
             } else {
@@ -208,14 +211,24 @@ class RepeatOrderForm extends Form
             return false;
         }
         Director::redirect(RepeatOrdersPage::get_repeat_order_link('view', $repeatOrder->ID));
+
         return true;
     }
 
+    /**
+     * add item to the beginning of array
+     * @param  array $arr [description]
+     * @param  mixed $key [description]
+     * @param  mixed $val [description]
+
+     * @return array
+     */
     private function array_unshift_assoc(&$arr, $key, $val)
     {
         $arr = array_reverse($arr, true);
         $arr[$key] = $val;
         $arr = array_reverse($arr, true);
+
         return $arr;
     }
 }

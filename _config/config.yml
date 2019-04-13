@@ -18,7 +18,6 @@ RepeatOrder:
     payment_methods:
         - DirectCreditPayment': 'Direct Credit (payment into bank account)'
 
-    # schedule: []
     #
     # status_nice: [
     #   'Pending': 'Pending'

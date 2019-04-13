@@ -8,6 +8,26 @@ class RepeatOrder extends DataObject
 {
 
 
+    #######################
+    ### Names Section
+    #######################
+
+    private static $singular_name = 'Repeat Order';
+
+    public function i18n_singular_name()
+    {
+        return _t(self::class.'.SINGULAR_NAME', 'Repeat Order');
+    }
+
+    private static $plural_name = 'Repeat Orders';
+
+    public function i18n_plural_name()
+    {
+        return _t(self::class.'.PLURAL_NAME', 'Repeat Orders');
+    }
+
+
+
     /**
      * Minimum of days in the future that the order is lodged.
      * @var int
@@ -18,16 +38,15 @@ class RepeatOrder extends DataObject
      * Standard SS variable
      */
     private static $db = [
-        'Status' => "Enum('Pending, Active, MemberCancelled, AdminCancelled, Finished', 'Pending')",
+        'Status' => 'Enum(\'Pending, Active, MemberCancelled, AdminCancelled, Finished\', \'Pending\')',
         //dates
         'Start' => 'Date',
         'End' => 'Date',
         'Period' => 'Varchar',
-        'DeliveryDay' => 'Text',
         //payment
         'PaymentMethod' => 'Varchar',
-        "CreditCardOnFile" => "Boolean",
-        "PaymentNote" => "Text",
+        'CreditCardOnFile' => 'Boolean',
+        'PaymentNote' => 'Text',
         //computed values and notes
         'ItemsForSearchPurposes' => 'Text', //FOR SEARCH PURPOSES ONLY!
         'Notes' => 'Text'
@@ -54,31 +73,44 @@ class RepeatOrder extends DataObject
      * Standard SS variable.
      */
     private static $indexes = [
-        "Status" => true
+        'Status' => true,
+        'Start' => true,
+        'End' => true,
+        'Period' => true,
+        'ItemsForSearchPurposes' => true
     ];
 
     /**
      * Standard SS variable
      */
     private static $casting = [
-        "OrderItemList" => "Text",
-        "FirstOrderDate" => "Date",
-        "LastOrderDate" => "Date",
-        "TodaysOrderDate" => "Date",
-        "NextOrderDate" => "Date",
-        "FinalOrderDate" => "Date",
-        "DeliverySchedule" => "Text"
+        'OrderItemList' => 'Text',
+        'FirstOrderDate' => 'Date',
+        'LastOrderDate' => 'Date',
+        'TodaysOrderDate' => 'Date',
+        'NextOrderDate' => 'Date',
+        'FinalOrderDate' => 'Date',
+        'DeliverySchedule' => 'Text',
+        'HasFutureOrders' => 'Boolean'
     ];
 
+    #######################
+    ### Field Names and Presentation Section
+    #######################
 
     /**
      * Standard SS variable
      */
     private static $searchable_fields = [
-        "ItemsForSearchPurposes" => "PartialMatchFilter",
-        "Period" => "ExactMatchFilter",
-        "DeliveryDay" => "ExactMatchFilter",
-        "Status" => "ExactMatchFilter"
+        'Status' => 'ExactMatchFilter',
+        'Period' => 'PartialMatchFilter',
+        //payment
+        'PaymentMethod' => 'PartialMatchFilter',
+        'CreditCardOnFile' => 'ExactMatchFilter',
+        'PaymentNote' => 'PartialMatchFilter',
+        //computed values and notes
+        'Notes' => 'PartialMatchFilter',
+        'ItemsForSearchPurposes' => 'PartialMatchFilter',
     ];
 
     /**
@@ -88,13 +120,30 @@ class RepeatOrder extends DataObject
         'ID' => 'Repeat Order ID',
         'Member.Surname' => 'Surname',
         'Member.Email' => 'Email',
+        'HasFutureOrders.Nice' => 'Future Orders',
         'OrderItemList' => 'Order Item List',
         'Start' => 'Start',
         'End' => 'End',
         'Period' => 'Period',
-        'DeliveryDay' => 'Delivery Day',
         'Status' => 'Status'
     ];
+
+
+
+    private static $field_labels = [
+        'Status' => 'Status',
+        //dates
+        'Start' => 'Start Date',
+        'End' => 'End Date',
+        'Period' => 'Repeat Schedule',
+        //payment
+        'PaymentMethod' => 'Payment Type',
+        'CreditCardOnFile' => 'Credit Card on File',
+        'PaymentNote' => 'Payment Notes',
+        'Notes' => 'Notes'
+    ];
+
+
 
     /**
      * Standard SS variable
@@ -113,6 +162,9 @@ class RepeatOrder extends DataObject
         '1 month' => 'Monthly'
     ];
 
+    /**
+     * @return string
+     */
     public static function default_period_key()
     {
         if ($a = Config::inst()->get('RepeatOrder', 'period_fields')) {
@@ -120,16 +172,13 @@ class RepeatOrder extends DataObject
                 return $k;
             }
         }
+
+        return '';
     }
 
-    /**
-     * @var Array
-     */
-    private static $schedule = [];
-
 
     /**
-     * @array
+     * @var array
      */
     private static $status_nice = array(
         'Pending' => 'Pending',
@@ -146,31 +195,33 @@ class RepeatOrder extends DataObject
     protected static $payment_methods = array(
         'DirectCreditPayment' => 'Direct Credit (payment into bank account)'
     );
-    public static function set_payment_methods($a)
-    {
-        self::$payment_methods = $a;
-    }
 
+    /**
+     *
+     * @return string
+     */
     public static function default_payment_method_key()
     {
         $a = Config::inst()->get('RepeatOrder', 'payment_methods');
         foreach ($a as $k => $v) {
             return $k;
         }
+        return '';
     }
 
     /**
      * Can it be edited, alias for canEdit
-     * @return Boolean
+     *
+     * @return bool
      */
-    public function CanModify($member = null)
+    public function canModify($member = null)
     {
         return $this->canEdit();
     }
 
     /**
      * Link for viewing
-     * @return String
+     * @return string
      */
     public function Link()
     {
@@ -179,7 +230,7 @@ class RepeatOrder extends DataObject
 
     /**
      * Link for editing
-     * @return String
+     * @return string
      */
     public function ModifyLink()
     {
@@ -189,7 +240,7 @@ class RepeatOrder extends DataObject
 
     /**
      * Link for cancelling
-     * @return String
+     * @return string
      */
     public function CancelLink()
     {
@@ -198,7 +249,7 @@ class RepeatOrder extends DataObject
 
     /**
      * Link for end of view / edit / cancel session
-     * @return String
+     * @return string
      */
     public function DoneLink()
     {
@@ -214,7 +265,7 @@ class RepeatOrder extends DataObject
 
     /**
      * returns a list of actual orders that have been created from this repeat order.
-     * @return DOS | Null
+     * @return ArrayList|null
      */
     public function AutomaticallyCreatedOrders()
     {
@@ -230,14 +281,16 @@ class RepeatOrder extends DataObject
         }
     }
 
-//====================================================================================================================================================================================
+    //===================================================
+    //===================================================
+    //===================================================
 
     /**
      * Create due draft orders
      */
     public static function create_automatically_created_orders()
     {
-        set_time_limit(0); //might take a while with lots of orders
+        set_time_limit(600); //might take a while with lots of orders
         //get all Repeat orders
         $repeatOrders = RepeatOrder::get()->filter(['Status' => 'Active']);
         if ($repeatOrders) {
@@ -258,33 +311,35 @@ class RepeatOrder extends DataObject
         $firstOrderDate = $this->FirstOrderDate();
         if ($firstOrderDate) {
             $startTime = strtotime($firstOrderDate->format("Y-m-d"));
-        }
-        if (!$firstOrderDate) {
+        } else {
             $this->Status = 'Pending';
             $this->write();
+
             return;
-        } else {
-            $endTime = strtotime($this->dbObject("End")->format("Y-m-d"));
-            if ($today > $endTime) {
-                $this->Status = 'Finished';
-                $this->write();
-                return;
-            } elseif ($startTime < $today) {
-                $a = $this->workOutSchedule();
-                if (count($a)) {
-                    foreach ($a as $orderDateInteger => $orderDateLong) {
-                        if (!$this->MemberID) {
-                            USER_ERROR("Can not create Order without member linked in RepeatOrder #".$this->ID, E_USER_ERROR);
-                        } elseif (!$orderDateInteger) {
-                            USER_ERROR("Can not create Order without date for in RepeatOrder #".$this->ID, E_USER_ERROR);
-                        } elseif ($orderDateInteger <= $today) {
-                            $this->createOrderFromRepeatOrder($orderDateInteger);
-                        }
+        }
+
+        $endTime = strtotime($this->dbObject("End")->format("Y-m-d"));
+        if ($today > $endTime) {
+            $this->Status = 'Finished';
+            $this->write();
+
+            return;
+        } elseif ($startTime < $today) {
+            $a = $this->workOutSchedule();
+            if (count($a)) {
+                foreach ($a as $orderDateInteger => $orderDateLong) {
+                    if (!$this->MemberID) {
+                        continue;
+                    } elseif (!$orderDateInteger) {
+                        continue;
+                    } elseif ($orderDateInteger <= $today) {
+                        $this->createOrderFromRepeatOrder($orderDateInteger);
                     }
                 }
             }
         }
     }
+
 
 
     /**
@@ -294,58 +349,39 @@ class RepeatOrder extends DataObject
      */
     protected function createOrderFromRepeatOrder($orderDateInteger)
     {
-        $order = Order::get()
-            ->filter(["OrderDateInteger" => $orderDateInteger, "RepeatOrderID" => $this->ID])
+        $filter = ["OrderDateInteger" => $orderDateInteger, "RepeatOrderID" => $this->ID];
+        $newOrder = Order::get()
+            ->filter($filter)
             ->first();
-        if ($order) {
+        if ($newOrder) {
             //do nothing
         } else {
-            $order = Order::create();
-            $order->OrderDate = date("Y-m-d", $orderDateInteger);
-            $order->OrderDateInteger = $orderDateInteger;
-            $order->RepeatOrderID = $this->ID;
-            $order->MemberID = $this->MemberID;
-            $order->CustomerOrderNote = "Created as part of a repeating order.";
-            $order->write();
-            if ($this->OrderItems()) {
-                foreach ($this->OrderItems() as $repeatOrderOrderItem) {
-                    $product = Product::get()->byID($repeatOrderOrderItem->ProductID);
-                    if ($product) {
-                        //START CHECK AVAILABILITY
-                        // if (class_exists("ProductStockCalculatedQuantity")) {
-                        //     $numberAvailable = ProductStockCalculatedQuantity::get_quantity_by_product_id($product->ID);
-                        //     if ($numberAvailable < $repeatOrderOrderItem->Quantity) {
-                        //         $alternatives = $repeatOrderOrderItem->AlternativesPerProduct();
-                        //         $product = null;
-                        //         if ($dos) {
-                        //             foreach ($alternatives as $alternative) {
-                        //                 $stillLookingForAlternative = true;
-                        //                 $numberAvailable = ProductStockCalculatedQuantity::get_quantity_by_product_id($alternative->ID);
-                        //                 if ($numberAvailable > $repeatOrderOrderItem->Quantity && $stillLookingForAlternative) {
-                        //                     $stillLookingForAlternative = false;
-                        //                     $product = $alternative;
-                        //                 }
-                        //             }
-                        //         }
-                        //     }
-                        // }
-                        //END CHECK AVAILABILITY
+            $originatingOrder = $this->OriginatingOrder();
+            if($originatingOrder && $originatingOrder->exists()) {
+                $shoppingCart = ShoppingCart::singleton();
+                $newOrder = Order::create($filter);
+                $newOrder->OrderDate = date("Y-m-d", $orderDateInteger);
+                $newOrder->MemberID = $this->MemberID;
+                $newOrder->CustomerOrderNote = "Created as part of a repeating order.";
+                $newOrder = $shoppingCart->CopyOrderOnly($originatingOrder, $newOrder);
+                //load the order
+                $newOrder->write();
+                if ($this->OrderItems()) {
+                    $buyables = [];
+                    foreach ($this->OrderItems() as $repeatOrderOrderItem) {
+                        $product = Product::get()->byID($repeatOrderOrderItem->ProductID);
                         if ($product) {
-                            $newProductOrderItem = Product_OrderItem::create();
-                            $newProductOrderItem->addBuyableToOrderItem($product, $repeatOrderOrderItem->Quantity);
-                            $newProductOrderItem->OrderID = $order->ID;
-                            $newProductOrderItem->write();
+                            $buyables[] = $product;
                         }
-                    } else {
-                        USER_ERROR("Product does not exist", E_USER_WARNING);
+                    }
+                    if(count($buyables)) {
+                        $newOrder = $shoppingCart->CopyBuyablesToNewOrder($newOrder, $buyables);
                     }
                 }
-            } else {
-                USER_ERROR("There are no order items", E_USER_WARNING);
             }
             //FINALISE!!!
-            $order->write();
-            $order->tryToFinaliseOrder();
+            $newOrder->write();
+            $newOrder->tryToFinaliseOrder();
         }
     }
 
@@ -357,7 +393,7 @@ class RepeatOrder extends DataObject
      */
     public static function create_repeat_order_from_order(Order $Order)
     {
-        $repeatOrder = RepeatOrder();
+        $repeatOrder = RepeatOrder::create();
         $repeatOrder->Status = 'Pending';
         $repeatOrder->MemberID = $Order->MemberID;
         $repeatOrder->write();
@@ -375,6 +411,7 @@ class RepeatOrder extends DataObject
             }
         }
         $repeatOrder->write();
+
         return $repeatOrder;
     }
 
@@ -382,25 +419,17 @@ class RepeatOrder extends DataObject
 
 
 
-//================================================================================================================================================================================
-
-    /**
-     * @return string
-     */
-    public function TableDeliveryDay()
-    {
-        return $this->DeliveryDay;
-    }
 
     /**
      * @return string
      */
     public function TablePaymentMethod()
     {
-        if (isset(self::$payment_methods[$this->PaymentMethod])) {
-            return self::$payment_methods[$this->PaymentMethod];
+        $methods = Config::inst()->get('RepeatOrder', 'payment_methods');
+        if (isset($methods[$this->PaymentMethod])) {
+            return $methods[$this->PaymentMethod];
         }
-        return "";
+        return '';
     }
 
     /**
@@ -408,7 +437,11 @@ class RepeatOrder extends DataObject
      */
     public function TableStatus()
     {
-        return self::$status_nice[$this->Status];
+        $status = Config::inst()->get('RepeatOrder', 'status_nice');
+        if (isset($status[$this->Status])) {
+            return $status[$this->Status];
+        }
+        return '';
     }
 
 
@@ -416,58 +449,10 @@ class RepeatOrder extends DataObject
 
 
 
-    /**
-     * CMS Fields for ModelAdmin, use different fields for adding/editing
-     * @see sapphire/core/model/DataObject#getCMSFields($params)
-     */
     public function getCMSFields()
     {
-        if ($this->exists()) {
-            $this->addAutomaticallyCreatedOrders();
-            return $this->getCMSFields_edit();
-        } else {
-            return $this->getCMSFields_add();
-        }
-    }
+        $fields = parent::getCMSFields();
 
-    /**
-     * CMS Fields to adding via ModelAdmin
-     * @return FieldList
-     */
-    public function getCMSFields_add()
-    {
-        $fields = FieldList::create(
-            TabSet::create('Root',
-                Tab::create('Main',
-                    ListboxField::create(
-                        'PaymentMethod',
-                        'Payment Method',
-                        Config::inst()->get('RepeatOrder', 'payment_methods'),
-                        null,
-                        count(Config::inst()->get('RepeatOrder', 'payment_methods'))
-                     ),
-                    DateField::create('Start', 'Start'),
-                    DateField::create('End', 'End (Optional)'),
-                    ListboxField::create(
-                        'Period',
-                        'Period',
-                        Config::inst()->get('RepeatOrder', 'period_fields'),
-                        null,
-                        count(Config::inst()->get('RepeatOrder', 'period_fields'))
-                    ),
-                    TextareaField::create('Notes', 'Notes')
-                )
-            )
-        );
-        return $fields;
-    }
-
-    /**
-     * CMS Fields to adding via ModelAdmin
-     * @return FieldList
-     */
-    public function getCMSFields_edit()
-    {
         $firstCreated = "can not be computed";
         if ($firstCreatedObj = $this->FirstOrderDate()) {
             $firstCreated = $firstCreatedObj->Long();
@@ -488,169 +473,77 @@ class RepeatOrder extends DataObject
         } else {
             $nextCreated = "Repeat Order not active - no next date is available if the Repeat Order is not active.";
         }
-        if (!$this->DeliveryDay) {
-            $firstCreated = $finalCreated = $lastCreated = $nextCreated = "Please select a delivery day first.";
-        }
-        $fields = FieldList::create(
-            TabSet::create(
-                'Root',
-                Tab::create(
-                    'Main',
-                    LiteralField::create(
-                        'Readonly[ID]',
-                        '<p>Repeat Order Number: '.$this->ID.'</p>'
-                    ),
-                    LiteralField::create(
-                        'Readonly[Member]',
+
+
+        $fields->replaceField(
+            'PaymentMethod',
+            ListboxField::create(
+                'PaymentMethod',
+                'Payment Method',
+                Config::inst()->get('RepeatOrder', 'payment_methods'),
+                null,
+                count(Config::inst()->get('RepeatOrder', 'payment_methods'))
+            )
+        );
+        $fields->replaceField(
+            'Period',
+            ListboxField::create(
+                'Period',
+                'Period',
+                Config::inst()->get('RepeatOrder', 'period_fields'),
+                null,
+                count(Config::inst()->get('RepeatOrder', 'period_fields'))
+            )
+        );
+        $fields->replaceField(
+            'Status',
+            DropdownField::create(
+                'Status',
+                'Status',
+                Config::inst()->get('RepeatOrder', 'status_nice')
+            )
+        );
+
+        $fields->addFieldsToTab(
+            'Root.Details',
+            [
+                LiteralField::create(
+                    'Readonly[ID]',
+                    '<p>Repeat Order Number: '.$this->ID.'</p>'
+                ),
+                LiteralField::create(
+                    'Readonly[Member]',
 <<<HTML
-    <div class="field readonly " id="Readonly[Member]">
-        <label for="Form_EditForm_Readonly-Member" class="left">Member</label>
-        <div class="middleColumn">
-            <span class="readonly" id="Form_EditForm_Readonly-Member">{$this->Member()->getTitle()} ({$this->Member()->Email}) </span>
-            <input type="hidden" value="{$this->Member()->getTitle()} ({$this->Member()->Email})" name="Readonly[Member]"/>
-        </div>
+<div class="field readonly " id="Readonly[Member]">
+    <label for="Form_EditForm_Readonly-Member" class="left">Member</label>
+    <div class="middleColumn">
+        <span class="readonly" id="Form_EditForm_Readonly-Member">{$this->Member()->getTitle()} ({$this->Member()->Email}) </span>
+        <input type="hidden" value="{$this->Member()->getTitle()} ({$this->Member()->Email})" name="Readonly[Member]"/>
     </div>
+</div>
 HTML
-                    ),
-                    DropdownField::create('Status', 'Status', self::$status_nice),
-                    DateField::create('Start', 'Start'),
-                    DateField::create('End', 'End (Optional)'),
-                    ListboxField::create(
-                        'Period',
-                        'Period',
-                        Config::inst()->get('RepeatOrder', 'period_fields'),
-                        null,
-                        count(Config::inst()->get('RepeatOrder', 'period_fields'))
-                    ),
-                    TextareaField::create('Notes', 'Notes')
                 ),
-                Tab::create(
-                    'Products',
-                    $this->getCMSProductsTable()
-                ),
-                Tab::create(
-                    'Orders',
-                    $this->getCMSPreviousOrders(),
-                    ReadonlyField::create("DeliveryScheduleFormatted", "Delivery Schedule", $this->DeliverySchedule()),
-                    ReadonlyField::create("FirstCreatedFormatted", "First Order", $firstCreated),
-                    ReadonlyField::create("LastCreatedFormatted", "Last Order", $lastCreated),
-                    ReadonlyField::create("NextCreatedFormatted", "Next Order", $nextCreated),
-                    ReadonlyField::create("FinalCreatedFormatted", "Final Order", $finalCreated)
-                ),
-                Tab::create(
-                    'Payment',
-                    CheckboxField::create("CreditCardOnFile", "Credit Card on File"),
-                    ListboxField::create(
-                        'PaymentMethod',
-                        'Payment Method',
-                        Config::inst()->get('RepeatOrder', 'payment_methods'),
-                        null,
-                        count(Config::inst()->get('RepeatOrder', 'payment_methods'))
-                    ),
-                    TextareaField::create('PaymentNote', 'Payment Note')
-                )
-            )
+            ]
         );
-        return $fields;
-    }
+        $fields->addFieldsToTab(
+            'Root.Orders',
+            [
+                ReadonlyField::create("DeliveryScheduleFormatted", "Delivery Schedule", $this->DeliverySchedule()),
+                ReadonlyField::create("FirstCreatedFormatted", "First Order", $firstCreated),
+                ReadonlyField::create("LastCreatedFormatted", "Last Order", $lastCreated),
+                ReadonlyField::create("NextCreatedFormatted", "Next Order", $nextCreated),
+                ReadonlyField::create("FinalCreatedFormatted", "Final Order", $finalCreated)
+            ]
+        );
 
-    /**
-     * CMS Fields for Popup
-     * @return FieldList
-     */
-    public function getCMSFields_forPopup()
-    {
-        $fields = FieldList::create(
-            TabSet::create('Root',
-                Tab::create('Main',
-                    ReadonlyField::create('Readonly[Member]', 'Member', $this->Member()->getTitle().' ('.$this->Member()->Email.')'),
-                    DropdownField::create('Status', 'Status', self::$status_nice),
-                    ListboxField::create(
-                        'PaymentMethod',
-                        'Payment Method',
-                        Config::inst()->get('RepeatOrder', 'payment_methods'),
-                        null,
-                        count(Config::inst()->get('RepeatOrder', 'payment_methods'))
-                    ),
-                    DateField::create('Start', 'Start'),
-                    DateField::create('End', 'End (Optional)'),
-                    DropdownField::create(
-                        'Period',
-                        'Period',
-                        Config::inst()->get('RepeatOrder', 'period_fields')
-                    ),
-                    TextField::create('DeliveryDay', 'Delivery Day'),
-                    TextareaField::create('Notes', 'Notes')
-                ),
-                Tab::create('Products',
-                    $this->getCMSProductsTable()
-                )
-            )
-        );
+
         return $fields;
     }
 
 
-
-    /**
-     * Get previous actual order table
-     * @return ComplexTableField
-     */
-    public function getCMSPreviousOrders()
-    {
-        $table = ComplexTableField::create(
-            $controller = $this,
-            $name = "PreviousOrders",
-            $sourceClass = "Order",
-            $fieldList = array(
-                "Title" => "Summary",
-                "Total" => "Total",
-                "CustomerStatus" => "Status",
-                "OrderDate" => "Planned Date",
-                "RetrieveLink" => "RetrieveLink"
-            ),
-            $detailFormFields = null,
-            $sourceFilter = "RepeatOrderID = ".$this->ID,
-            $sourceSort = "OrderDateInteger DESC",
-            $sourceJoin = ""
-        );
-        $table->setFieldCasting(array(
-            'OrderDate' => 'Date->Long',
-            'Total' => 'Currency->Nice'
-        ));
-        $table->setShowPagination(false);
-        $table->setAddTitle('Previous Orders');
-        $table->setPermissions(array("export", "show"));
-        return $table;
-    }
-
-    /**
-     * Get products table
-     * @return ComplexTableField
-     */
-    public function getCMSProductsTable()
-    {
-        $table = ComplexTableField::create(
-            $this,
-            'OrderItems',
-            'RepeatOrder_OrderItem',
-            array(
-                'Product.Title' => 'Title',
-                'Quantity' => 'Qty',
-            )
-        );
-
-        $table->setShowPagination(false);
-        $table->setAddTitle('Product');
-        $table->setPermissions(array('add', 'edit', 'delete'));
-
-        return $table;
-    }
-
-
-
-
-//========================================================================================================================================================================================================================================================================
+    //============
+    //============
+    //============
 
     public function onBeforeWrite()
     {
@@ -658,17 +551,24 @@ HTML
         $this->ItemsForSearchPurposes = $this->OrderItemList();
     }
 
-//===========================================================================================================================================================================================
+
+    //============
+    //============
+    //============
 
     /**
      * List of products
      *
-     * @return String
+     * @return string
      */
     public function OrderItemList()
     {
         return $this->getOrderItemList();
     }
+    /**
+     *
+     * @return string
+     */
     public function getOrderItemList()
     {
         $a = [];
@@ -691,12 +591,13 @@ HTML
     /**
      * The first order date
      *
-     * @return Date | Null
+     * @return Date|null
      */
     public function FirstOrderDate()
     {
         return $this->getFirstOrderDate();
     }
+
     public function getFirstOrderDate()
     {
         $a = $this->workOutSchedule();
@@ -710,12 +611,18 @@ HTML
     /**
      * Last date that an order was placed
      *
-     * @return Date | Null
+     * @return Date|null
      */
     public function LastOrderDate()
     {
         return $this->getLastOrderDate();
     }
+
+    /**
+     * Last date that an order was placed
+     *
+     * @return Date|null
+     */
     public function getLastOrderDate()
     {
         $a = $this->workOutSchedule();
@@ -735,12 +642,18 @@ HTML
     /**
      * today's' date for the order - if ANY!
      *
-     * @return Date | Null
+     * @return Date|null
      */
     public function TodaysOrderDate()
     {
         return $this->getTodaysOrderDate();
     }
+
+    /**
+     * today's' date for the order - if ANY!
+     *
+     * @return Date|null
+     */
     public function getTodaysOrderDate()
     {
         $a = $this->workOutSchedule();
@@ -757,12 +670,13 @@ HTML
     /**
      * Next date (from the viewpoint of today)
      *
-     * @return Date | Null
+     * @return Date|null
      */
     public function NextOrderDate()
     {
         return $this->getNextOrderDate();
     }
+
     public function getNextOrderDate()
     {
         $a = $this->workOutSchedule();
@@ -780,12 +694,13 @@ HTML
     /**
      * Last Delivery Date
      *
-     * @return Date | Null
+     * @return Date|null
      */
     public function FinalOrderDate()
     {
         return $this->getFinalOrderDate();
     }
+
     public function getFinalOrderDate()
     {
         $a = $this->workOutSchedule();
@@ -802,12 +717,13 @@ HTML
     /**
      * List of delivery dates
      *
-     * @return String
+     * @return string
      */
     public function DeliverySchedule()
     {
         return $this->getDeliverySchedule();
     }
+
     public function getDeliverySchedule()
     {
         $a = $this->workOutSchedule();
@@ -816,6 +732,10 @@ HTML
         }
     }
 
+    /**
+     * @var Array
+     */
+    private static $_schedule = [];
 
     /**
      * Work out the delivery schedule
@@ -824,16 +744,11 @@ HTML
     protected function workOutSchedule()
     {
         //caching value for quicker response
-        if (!isset(self::$schedule[$this->ID])) {
+        if (!isset(self::$_schedule[$this->ID])) {
             $a = [];
-            if ($this->Period && $this->End && $this->Start && $this->DeliveryDay && $this->Status == "Active") {
+            if ($this->Period && $this->End && $this->Start &&  $this->Status == "Active") {
                 $startTime = strtotime($this->Start);
-                if (Date("l", $startTime) == $this->DeliveryDay) {
-                    $firstTime = $startTime;
-                } else {
-                    $phrase = "Next ".$this->DeliveryDay;
-                    $firstTime = strtotime($phrase, $startTime);
-                }
+                $firstTime = $startTime;
                 $endTime = strtotime($this->End);
                 $nextTime = $firstTime;
                 if ($firstTime && $nextTime && $endTime) {
@@ -847,32 +762,44 @@ HTML
                     }
                 }
             }
-            self::$schedule[$this->ID] = $a;
+            self::$_schedule[$this->ID] = $a;
         }
-        return self::$schedule[$this->ID];
+        return self::$_schedule[$this->ID];
     }
 
 
     /**
      * Are there any orders scheduled for the future
-     * @return Boolean
+     * @return bool
      */
     public function HasFutureOrders()
+    {
+        return $this->getHasFutureOrders();
+    }
+
+    /**
+     * Are there any orders scheduled for the future
+     * @return bool
+     */
+    public function getHasFutureOrders()
     {
         if ($this->NextOrderDate()) {
             return true;
         }
+
+        return false;
     }
 
     /**
      * Are there any orders scheduled for today
-     * @return Boolean
+     * @return bool
      */
     public function HasAnOrderToday()
     {
         if ($this->TodaysOrderDate()) {
             return true;
         }
+        return false;
     }
 
 //===========================================================================================================================================================================================
@@ -893,7 +820,7 @@ HTML
 
     public function canEdit($member = null)
     {
-        if (in_array($this->Status, array('Pending', 'Active'))) {
+        if (in_array($this->Status, ['Pending', 'Active'])) {
             return $this->canView($member);
         } else {
             return false;
@@ -902,9 +829,11 @@ HTML
 
     public function canDelete($member = null)
     {
-        if (in_array($this->Status, array('Pending'))) {
+        if (in_array($this->Status, ['Pending'])) {
+
             return $this->canView($member);
         } else {
+
             return false;
         }
     }

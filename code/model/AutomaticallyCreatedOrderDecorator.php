@@ -31,7 +31,7 @@ class AutomaticallyCreatedOrderDecorator extends DataExtension
         $fields->removeByName("OrderDateInteger");
         $fields->removeByName("RepeatOrderID");
         if ($this->owner->RepeatOrderID) {
-            $fields->addFieldToTab("Root.RepeatOrder", ReadonlyField::create("OrderDate", "Planned Order Date - based on repeating order schedule"));
+            $fields->addFieldToTab("Root.RepeatOrder", ReadonlyField::create("OrderDate", "Planned Next Order Date - based on repeating order schedule"));
             $fields->addFieldToTab("Root.RepeatOrder", ReadonlyField::create("RepeatOrderID", "Created as part of Repeat Order #"));
         }
     }

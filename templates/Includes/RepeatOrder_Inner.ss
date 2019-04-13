@@ -19,10 +19,6 @@
 	<td>$Period &nbsp;</td>
 </tr>
 <tr class="summary">
-	<td scope="row" class="left">Delivery Days</td>
-	<td>$TableDeliveryDay &nbsp;</td>
-</tr>
-<tr class="summary">
 	<td scope="row" class="left">Notes</td>
 	<td>$Notes &nbsp;</td>
 </tr>

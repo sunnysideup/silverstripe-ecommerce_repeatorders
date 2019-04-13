@@ -92,7 +92,7 @@ class RepeatOrdersPage extends AccountPage
     {
         parent::requireDefaultRecords();
         if (!DataObject::get_one('RepeatOrdersPage')) {
-            $page = new RepeatOrdersPage();
+            $page = RepeatOrdersPage::create();
             $page->Title = 'Repeat Orders';
             $page->Content = '<p>This is the Repeat orders account page. It is used for shop users to login and create or change their Repeat orders.</p>';
             $page->URLSegment = 'repeat-orders';
@@ -102,9 +102,7 @@ class RepeatOrdersPage extends AccountPage
             $page->ShowInSearch = 0;
             $page->writeToStage('Stage');
             $page->publish('Stage', 'Live');
-            if (method_exists('DB', 'alteration_message')) {
-                DB::alteration_message('Repeat Order page \'Repeat Orders\' created', 'created');
-            }
+            DB::alteration_message('Repeat Order page \'Repeat Orders\' created', 'created');
         }
     }
 
@@ -115,5 +113,167 @@ class RepeatOrdersPage extends AccountPage
     public function onBeforeWrite()
     {
         parent::onBeforeWrite();
+    }
+}
+
+
+class RepeatOrdersPage_Controller extends AccountPage_Controller
+{
+    public function init()
+    {
+        parent::init();
+    }
+
+    public function createorder($request)
+    {
+        $orderID = intval($request->param("ID"));
+        $order = null;
+        if ($orderID) {
+            $order = Order::get_by_id_if_can_view($orderID);
+        }
+        if (!$order) {
+            $order = ShoppingCart::current_order();
+        }
+        //TODO: move items to order
+        $params = array(
+            'Order' => $order,
+        );
+        return $this->renderWith(
+            ['RepeatOrdersPage_edit', 'Page'],
+            $params
+        );
+    }
+
+    public function cancel($request)
+    {
+        if ($repeatOrderID = intval($request->param("ID"))) {
+            $repeatOrder = DataObject::get_one('RepeatOrder', ["ID" => $repeatOrderID]);
+            if ($repeatOrder && $repeatOrder->canEdit()) {
+                $repeatOrder->Status = 'MemberCancelled';
+                $repeatOrder->write();
+
+                return Director::redirectBack();
+            }
+        }
+        die("Could not cancel repeat order.");
+    }
+
+    public function view($request)
+    {
+        $params = array(
+            'RepeatOrder' => false,
+            'Message' => 'Repeating order could not be found.'
+        );
+        if ($repeatOrderID = intval($request->param("ID"))) {
+            $repeatOrder = DataObject::get_one('RepeatOrder', "RepeatOrder.ID = '$repeatOrderID'");
+            if ($repeatOrder && $repeatOrder->canView()) {
+                $params = array(
+                    'RepeatOrder' => $repeatOrder,
+                    'Message' => "Please review order below."
+                );
+            } else {
+                $params = array(
+                    'RepeatOrder' => null,
+                    'Message' => "You can not view this Order."
+                );
+            }
+        }
+
+        return $this->renderWith(
+            ['RepeatOrdersPage_view', 'Page'],
+            $params
+        );
+    }
+
+    public function modify($request)
+    {
+        $params = array(
+            'RepeatOrder' => false,
+            'Message' => 'There is no order by that ID.'
+        );
+        if ($repeatOrderID = intval($request->param("ID"))) {
+            $repeatOrder = DataObject::get_by_id('RepeatOrder', $repeatOrderID);
+            if ($repeatOrder->canEdit()) {
+                $params = array(
+                    'RepeatOrder' => false,
+                    'Message' => 'Please edit your details below.'
+                );
+            }
+        }
+        return $this->renderWith(
+            ['RepeatOrdersPage_edit', 'Page'],
+            $params
+        );
+    }
+
+    /**
+     *
+     * @return RepeatOrderForm
+     */
+    public function RepeatOrderForm()
+    {
+        $action = $this->request->param('Action');
+        $repeatOrderID = intval($this->request->param('ID'));
+        $orderID = 0;
+        if ($action == 'createorder' || isset($_REQUEST['action_doCreate'])) {
+            if (isset($_REQUEST['action_doCreate']) && isset($_REQUEST['repeatOrderID'])) {
+                $repeatOrderID = intval($_REQUEST['repeatOrderID']);
+            }
+            if ($action == 'createorder') {
+                $orderID = $repeatOrderID;
+                $repeatOrderID = 0;
+            }
+            return RepeatOrderForm::create(
+                $this,
+                'RepeatOrderForm',
+                $repeatOrderID,
+                $orderID
+            );
+        } elseif ($action == 'update' || isset($_REQUEST['action_doSave'])) {
+            if (isset($_REQUEST['action_doSave']) && isset($_REQUEST['RepeatOrderID'])) {
+                $repeatOrderID = intval($_REQUEST['RepeatOrderID']);
+            }
+            return RepeatOrderForm::create(
+                $this,
+                'RepeatOrderForm',
+                $repeatOrderID,
+                $orderID
+            );
+        } elseif ($repeatOrderID) {
+            return RepeatOrderForm::create(
+                $this,
+                'RepeatOrderForm',
+                $repeatOrderID,
+                $orderID
+            );
+        } else {
+            return $this->redirect('404-could-not-find-order');
+        }
+    }
+    /**
+     * Show a list of all repeating orders.
+     * @return HTML
+     */
+    public function admin()
+    {
+        $shopAdminCode = EcommerceConfig::get("EcommerceRole", "admin_permission_code");
+        if (Permission::check("ADMIN") || Permission::check($shopAdminCode)) {
+            RepeatOrder::create_automatically_created_orders();
+            $params = array(
+                "AllRepeatOrders" => RepeatOrder::get()->filter(["Status" => 'Active'])
+            );
+            Requirements::javascript(THIRDPARTY_DIR."/jquery/jquery.js");
+            //Requirements::block(THIRDPARTY_DIR."/jquery/jquery.js");
+            //Requirements::javascript(Director::protocol()."ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js");
+            Requirements::javascript("ecommerce_repeatorders/javascript/RepeatOrdersPage_admin.js");
+            Requirements::themedCSS("RepeatOrdersPage_admin");
+
+            return $this->renderWith(
+                ['RepeatOrdersPage_admin', 'Page'],
+                $params
+            );
+        } else {
+            return Security::permissionFailure($this, _t('OrderReport.PERMISSIONFAILURE', 'Sorry you do not have permission for this function. Please login as an Adminstrator'));
+        }
     }
 }

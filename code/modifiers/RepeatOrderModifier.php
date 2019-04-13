@@ -32,10 +32,10 @@ class RepeatOrderModifier extends OrderModifier
         $repeatOrderID = Session::get('RepeatOrder');
         $createLink = RepeatOrdersPage::get_repeat_order_link('createorder');
         if ($repeatOrderID && Member::currentMember()) {
-            $order = DataObject::get_one('RepeatOrder', ['ID' => $repeatOrderID]);
+            $repeatOrder = DataObject::get_one('RepeatOrder', ['ID' => $repeatOrderID]);
             $updateLink = RepeatOrdersPage::get_repeat_order_link('update', $repeatOrderID);
             $cancelLink = RepeatOrdersPage::get_repeat_order_link('cancel', $repeatOrderID);
-            if ($order->CanModify()) {
+            if ($repeatOrder->canModify()) {
                 $fields->push(LiteralField::create('modifyRepeatOrder',
 <<<HTML
                     <div class="Actions"><input id="ModifyRepeatOrderUpdate"  class="action" type="button" value="Save changes to your Repeat Order #$repeatOrderID" onclick="window.location='{$updateLink}';" /></div>
@@ -68,7 +68,8 @@ HTML
                     ));
                 }
             } else {
-                $fields->push(new LiteralField("whatAreRepeatOrders",
+                $fields->push(new LiteralField(
+                    "whatAreRepeatOrders",
 <<<HTML
                     <div id="WhatAreRepeatOrders">This order is based on a Repeat Order.</div>
 HTML
@@ -84,12 +85,13 @@ HTML
                 ));
             }
         }
-        return new RepeatOrderModifierForm(
+        return RepeatOrderModifierForm::create(
             $optionalController,
             'RepeatOrderModifier',
             $fields,
-            new FieldList(),
-            $optionalValidator);
+            $actions = FieldList::create(),
+            $optionalValidator
+        );
     }
 
     public function LiveCalculatedTotal()
@@ -109,11 +111,12 @@ HTML
 
     public function LiveName()
     {
-        return "";
+        return '';
     }
 
     /**
      * retursn and array like this: array(Title => "bla", Link => "/doit/now/");
+     * This will be shown on the confirmation page....
      * @return Array
      */
     public function PostSubmitAction()
