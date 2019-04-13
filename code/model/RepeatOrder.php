@@ -76,8 +76,7 @@ class RepeatOrder extends DataObject
         'Status' => true,
         'Start' => true,
         'End' => true,
-        'Period' => true,
-        'ItemsForSearchPurposes' => true
+        'Period' => true
     ];
 
     /**
