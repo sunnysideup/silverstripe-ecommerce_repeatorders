@@ -16,7 +16,7 @@ RepeatOrder:
         '1 month': 'Monthly'
 
     payment_methods:
-        - DirectCreditPayment': 'Direct Credit (payment into bank account)'
+        DirectCreditPayment: 'Direct Credit (payment into bank account)'
 
     #
     # status_nice: [

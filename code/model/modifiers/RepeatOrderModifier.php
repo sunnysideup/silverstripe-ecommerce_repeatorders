@@ -36,14 +36,18 @@ class RepeatOrderModifier extends OrderModifier
             $updateLink = RepeatOrdersPage::get_repeat_order_link('update', $repeatOrderID);
             $cancelLink = RepeatOrdersPage::get_repeat_order_link('cancel', $repeatOrderID);
             if ($repeatOrder->canModify()) {
-                $fields->push(LiteralField::create('modifyRepeatOrder',
+                $fields->push(
+                    LiteralField::create(
+                        'modifyRepeatOrder',
 <<<HTML
-                    <div class="Actions"><input id="ModifyRepeatOrderUpdate"  class="action" type="button" value="Save changes to your Repeat Order #$repeatOrderID" onclick="window.location='{$updateLink}';" /></div>
+                        <div class="Actions"><input id="ModifyRepeatOrderUpdate"  class="action" type="button" value="Save changes to your Repeat Order #$repeatOrderID" onclick="window.location='{$updateLink}';" /></div>
 HTML
                     )
                 );
             } else {
-                $fields->push(LiteralField::create('createRepeatOrder',
+                $fields->push(
+                    LiteralField::create(
+                        'createRepeatOrder',
 <<<HTML
                         <div class="Actions"><input id="ModifyRepeatOrderCreate" class="action" type="button" value="Create a new Repeat Order" onclick="window.location='{$createLink}';" /></div>
 HTML
@@ -53,9 +57,11 @@ HTML
             Requirements::customScript("jQuery(document).ready(function(){jQuery(\"input[name='action_processOrder']\").hide();});", "hide_action_processOrder");
         } elseif (Member::currentUser()) {
             if (!Session::get("DraftOrderID")) {
-                $fields->push(new LiteralField('createRepeatOrder',
+                $fields->push(
+                    LiteralField::create(
+                        'createRepeatOrder',
 <<<HTML
-                    <div class="Actions"><input  id="ModifyRepeatOrderCreate" class="action" type="button" value="Turn this Order into a Repeat Order" onclick="window.location='{$createLink}';" /></div>
+                        <div class="Actions"><input  id="ModifyRepeatOrderCreate" class="action" type="button" value="Turn this Order into a Repeat Order" onclick="window.location='{$createLink}';" /></div>
 HTML
                     )
                 );

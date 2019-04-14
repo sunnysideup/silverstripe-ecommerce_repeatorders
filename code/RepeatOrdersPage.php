@@ -129,7 +129,8 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller
         'cancel' => true,
         'view' => true,
         'modify' => true,
-        'admin' => true
+        'admin' => true,
+        'RepeatOrderForm' => true
     );
 
     public function init()
@@ -165,7 +166,7 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller
                 $repeatOrder->Status = 'MemberCancelled';
                 $repeatOrder->write();
 
-                return Director::redirectBack();
+                return $this->redirectBack();
             }
         }
         die("Could not cancel repeat order.");

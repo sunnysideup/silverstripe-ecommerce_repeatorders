@@ -401,7 +401,7 @@ class RepeatOrder extends DataObject
             foreach ($orderItems as $orderItem) {
                 $buyable = $orderItem->Buyable();
                 if ($buyable && $buyable instanceof Product) {
-                    $repeatOrder_orderItem = RepeatOrder_OrderItem();
+                    $repeatOrder_orderItem = RepeatOrder_OrderItem::create();
                     $repeatOrder_orderItem->OrderID = $repeatOrder->ID;
                     $repeatOrder_orderItem->ProductID = $orderItem->BuyableID;
                     $repeatOrder_orderItem->Quantity = $orderItem->Quantity;
@@ -476,22 +476,18 @@ class RepeatOrder extends DataObject
 
         $fields->replaceField(
             'PaymentMethod',
-            ListboxField::create(
+            DropdownField::create(
                 'PaymentMethod',
                 'Payment Method',
-                Config::inst()->get('RepeatOrder', 'payment_methods'),
-                null,
-                count(Config::inst()->get('RepeatOrder', 'payment_methods'))
+                Config::inst()->get('RepeatOrder', 'payment_methods')
             )
         );
         $fields->replaceField(
             'Period',
-            ListboxField::create(
+            DropdownField::create(
                 'Period',
                 'Period',
-                Config::inst()->get('RepeatOrder', 'period_fields'),
-                null,
-                count(Config::inst()->get('RepeatOrder', 'period_fields'))
+                Config::inst()->get('RepeatOrder', 'period_fields')
             )
         );
         $fields->replaceField(

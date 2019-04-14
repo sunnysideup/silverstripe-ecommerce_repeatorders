@@ -12,7 +12,11 @@ class RepeatOrder_OrderItem extends DataObject
         'Alternative2' => 'Product',
         'Alternative3' => 'Product',
         'Alternative4' => 'Product',
-        'Alternative5' => 'Product'
+        'Alternative5' => 'Product',
+        'Alternative6' => 'Product',
+        'Alternative7' => 'Product',
+        'Alternative8' => 'Product',
+        'Alternative9' => 'Product'
     );
 
     public function getCMSFields()
@@ -76,10 +80,11 @@ class RepeatOrder_OrderItem extends DataObject
     public function AlternativesPerProduct()
     {
         $dos = ArrayList::create();
-        for ($i = 1; $i < 6; $i++) {
+        $altCount = Config::inst()->get('RepeatOrderForm', 'number_of_product_alternatives');
+        for ($i = 1; $i <= $altCount; $i++) {
             $alternativeField = "Alternative".$i."ID";
             if ($this->$alternativeField) {
-                $product = DataObject::get_one("Product", ['ID' => $this->$alternativeField]);
+                $product = Product::get()->filter(['ID' => $this->$alternativeField])->first();
                 if ($product) {
                     $dos->push($product);
                 }
