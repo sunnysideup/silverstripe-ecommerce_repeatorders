@@ -6,7 +6,6 @@ class RepeatOrderForm extends Form
 
     private static $number_of_product_alternatives = 0;
 
-
     public function __construct($controller, $name, $repeatOrderID = 0, $originatingOrder = 0)
     {
         $order = null;
@@ -89,7 +88,12 @@ class RepeatOrderForm extends Form
         }
 
         //other details
-        $fields->push(HeaderField::create('DetailsHeader', 'Repeat Order Details'));
+        $fields->push(
+            HeaderField::create(
+                'DetailsHeader',
+                'Repeat Order Details'
+            )
+        );
         $fields->push(
             DropdownField::create(
                 'PaymentMethod',
@@ -189,14 +193,26 @@ class RepeatOrderForm extends Form
             return false;
         }
         if (isset($data['OrderID'])) {
-            $order = DataObject::get_one('Order', 'Order.ID = \''.$data['OrderID'].'\' AND MemberID = \''.$member->ID.'\'');
-            if ($order) {
-                $repeatOrder = RepeatOrder::create_repeat_order_from_order($order);
-            } else {
-                $form->sessionMessage('Could not find originating order.', 'bad');
-                $this->controller->redirectBack();
+            $orderID = intval($data['OrderID']);
+            if($orderID) {
+                $order = DataObject::get_one('Order', 'Order.ID = \''.$orderID.'\' AND MemberID = \''.$member->ID.'\'');
+                if ($order) {
+                    $repeatOrder = RepeatOrder::create_repeat_order_from_order($order);
+                    if($repeatOrder) {
+                        $repeatOrder->OriginatingOrderID = $order->ID;
+                        $repeatOrder->write();
+                    } else {
+                        $form->sessionMessage('Sorry, an error occured - we could not create your subscribtion order. Please try again.', 'bad');
+                        $this->controller->redirectBack();
 
-                return false;
+                        return false;
+                    }
+                } else {
+                    $form->sessionMessage('Could not find originating order.', 'bad');
+                    $this->controller->redirectBack();
+
+                    return false;
+                }
             }
         } else {
             $repeatOrderID = intval($data['RepeatOrderID']);

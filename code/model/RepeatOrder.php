@@ -252,14 +252,19 @@ class RepeatOrder extends DataObject
      */
     public function DoneLink()
     {
-        $page = DataObject::get_one("RepeatOrdersPage");
-        if (!$page) {
-            $page = DataObject::get_one("CheckoutPage");
+        $checkoutPage = DataObject::get_one('CheckoutPage');
+        if($checkoutPage) {
+            return $checkoutPage->Link('checkoutstep/orderconfirmationandpayment');
+        } else {
+            $page = DataObject::get_one("RepeatOrdersPage");
             if (!$page) {
-                $page = DataObject::get_one("Page");
+                $page = DataObject::get_one("CheckoutPage");
+                if (!$page) {
+                    $page = DataObject::get_one("Page");
+                }
             }
+            return $page->Link();
         }
-        return $page->Link();
     }
 
     /**
@@ -387,31 +392,36 @@ class RepeatOrder extends DataObject
 
 /**
      * Create a RepeatOrder from a regular Order and its Order Items
-     * @param Order $Order
+     * @param Order $order
      * @return RepeatOrder
      */
-    public static function create_repeat_order_from_order(Order $Order)
+    public static function create_repeat_order_from_order(Order $order)
     {
-        $repeatOrder = RepeatOrder::create();
-        $repeatOrder->Status = 'Pending';
-        $repeatOrder->MemberID = $Order->MemberID;
-        $repeatOrder->write();
-        $orderItems = $Order->Items();
-        if ($orderItems) {
-            foreach ($orderItems as $orderItem) {
-                $buyable = $orderItem->Buyable();
-                if ($buyable && $buyable instanceof Product) {
-                    $repeatOrder_orderItem = RepeatOrder_OrderItem::create();
-                    $repeatOrder_orderItem->OrderID = $repeatOrder->ID;
-                    $repeatOrder_orderItem->ProductID = $orderItem->BuyableID;
-                    $repeatOrder_orderItem->Quantity = $orderItem->Quantity;
-                    $repeatOrder_orderItem->write();
+        if($order->MemberID) {
+            $repeatOrder = RepeatOrder::create();
+            $repeatOrder->OriginatingOrderID = $order->ID;
+            $repeatOrder->Status = 'Pending';
+            $repeatOrder->MemberID = $order->MemberID;
+            $repeatOrder->write();
+            $orderItems = $order->Items();
+            if ($orderItems) {
+                foreach ($orderItems as $orderItem) {
+                    $buyable = $orderItem->Buyable();
+                    if ($buyable && $buyable instanceof Product) {
+                        $repeatOrder_orderItem = RepeatOrder_OrderItem::create();
+                        $repeatOrder_orderItem->OrderID = $repeatOrder->ID;
+                        $repeatOrder_orderItem->ProductID = $orderItem->BuyableID;
+                        $repeatOrder_orderItem->Quantity = $orderItem->Quantity;
+                        $repeatOrder_orderItem->write();
+                    }
                 }
             }
-        }
-        $repeatOrder->write();
+            $repeatOrder->write();
 
-        return $repeatOrder;
+            return $repeatOrder;
+        } else {
+            user_error('No member for the order.');
+        }
     }
 
 

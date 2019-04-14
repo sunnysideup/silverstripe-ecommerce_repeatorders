@@ -29,18 +29,30 @@ class RepeatOrderModifier extends OrderModifier
         $fields = FieldList::create();
         $fields->push($this->headingField());
         $fields->push($this->descriptionField());
-        $repeatOrderID = Session::get('RepeatOrder');
-        $createLink = RepeatOrdersPage::get_repeat_order_link('createorder');
-        if ($repeatOrderID && Member::currentUser()) {
-            $repeatOrder = DataObject::get_one('RepeatOrder', ['ID' => $repeatOrderID]);
-            $updateLink = RepeatOrdersPage::get_repeat_order_link('update', $repeatOrderID);
-            $cancelLink = RepeatOrdersPage::get_repeat_order_link('cancel', $repeatOrderID);
+        $order = ShoppingCart::current_order();
+        $currentMember = Member::currentUser();
+
+        $repeatOrder = null;
+        if($order && $order->exists()) {
+            $orderID = $order->ID;
+            $repeatOrder = DataObject::get_one('RepeatOrder', ['OriginatingOrderID' => $order->ID]);
+        } else {
+            $orderID = 0;
+        }
+        $createLink = RepeatOrdersPage::get_repeat_order_link('createorder', $orderID);
+        if ($repeatOrder && $currentMember) {
+
+            $updateLink = RepeatOrdersPage::get_repeat_order_link('modify', $repeatOrder->ID);
+            $cancelLink = RepeatOrdersPage::get_repeat_order_link('cancel', $repeatOrder->ID);
+
             if ($repeatOrder->canModify()) {
                 $fields->push(
                     LiteralField::create(
                         'modifyRepeatOrder',
 <<<HTML
-                        <div class="Actions"><input id="ModifyRepeatOrderUpdate"  class="action" type="button" value="Save changes to your Repeat Order #$repeatOrderID" onclick="window.location='{$updateLink}';" /></div>
+                        <div class="Actions">
+                            <input id="ModifyRepeatOrderUpdate" class="action" type="button" value="Edit your associated Repeat Order" onclick="window.location='{$updateLink}';" />
+                        </div>
 HTML
                     )
                 );
@@ -49,44 +61,52 @@ HTML
                     LiteralField::create(
                         'createRepeatOrder',
 <<<HTML
-                        <div class="Actions"><input id="ModifyRepeatOrderCreate" class="action" type="button" value="Create a new Repeat Order" onclick="window.location='{$createLink}';" /></div>
+                        <div class="Actions">
+                            <input id="ModifyRepeatOrderCreate" class="action" type="button" value="Create a new Repeat Order" onclick="window.location='{$createLink}';" />
+                        </div>
 HTML
                     )
                 );
             }
             Requirements::customScript("jQuery(document).ready(function(){jQuery(\"input[name='action_processOrder']\").hide();});", "hide_action_processOrder");
-        } elseif (Member::currentUser()) {
-            if (!Session::get("DraftOrderID")) {
+        } elseif ($currentMember) {
+            if ($order->RepeatOrderID) {
+                $fields->push(
+                    LiteralField::create(
+                        "whatAreRepeatOrders",
+<<<HTML
+                        <div id="WhatAreRepeatOrders">This order is based on a Repeat Order.</div>
+HTML
+                    ));
+            } else {
                 $fields->push(
                     LiteralField::create(
                         'createRepeatOrder',
 <<<HTML
-                        <div class="Actions"><input  id="ModifyRepeatOrderCreate" class="action" type="button" value="Turn this Order into a Repeat Order" onclick="window.location='{$createLink}';" /></div>
+                        <div class="Actions">
+                            <input  id="ModifyRepeatOrderCreate" class="action" type="button" value="Turn this Order into a Repeat Order" onclick="window.location='{$createLink}';" />
+                        </div>
 HTML
                     )
                 );
                 $page = DataObject::get_one("RepeatOrdersPage");
                 if ($page) {
-                    $fields->push(new LiteralField("whatAreRepeatOrders",
+                    $fields->push(
+                        LiteralField::create("whatAreRepeatOrders",
 <<<HTML
-                    <div id="WhatAreRepeatOrders">$page->WhatAreRepeatOrders</div>
+                        <div id="WhatAreRepeatOrders">$page->WhatAreRepeatOrders</div>
 HTML
                     ));
                 }
-            } else {
-                $fields->push(new LiteralField(
-                    "whatAreRepeatOrders",
-<<<HTML
-                    <div id="WhatAreRepeatOrders">This order is based on a Repeat Order.</div>
-HTML
-                    ));
             }
         } else {
             $page = DataObject::get_one("RepeatOrdersPage");
             if ($page) {
-                $fields->push(new LiteralField("whatAreRepeatOrders",
+                $fields->push(
+                    LiteralField::create(
+                        "whatAreRepeatOrders",
 <<<HTML
-                    <div id="WhatAreRepeatOrders">$page->OnceLoggedInYouCanCreateRepeatOrder</div>
+                        <div id="WhatAreRepeatOrders">$page->OnceLoggedInYouCanCreateRepeatOrder</div>
 HTML
                 ));
             }
@@ -127,11 +147,28 @@ HTML
      */
     public function PostSubmitAction()
     {
-        if (Member::currentUser()) {
-            return array(
-                "Title" => _t("RepeatOrder.CREATEREPEATEORDER", "Turn this Order into a Repeat Order"),
-                "Link" => RepeatOrdersPage::get_repeat_order_link("createorder", $this->Order()->ID)
-            );
+        $order = $this->Order();
+        if($order && $order->exists()) {
+            if ($order->MemberID) {
+                if($order->RepeatOrderID) {
+                    return array(
+                        "Title" => _t("RepeatOrder.MODIFYORDER", "Edit repeating order"),
+                        "Link" => RepeatOrdersPage::get_repeat_order_link("view", $order->RepeatOrderID)
+                    );
+                }
+                $existingRepeatOrder = RepeatOrder::get()->filter(['OriginatingOrderID' => $order->ID])->first();
+                if($existingRepeatOrder && $existingRepeatOrder->exists()) {
+                    return array(
+                        "Title" => _t("RepeatOrder.MODIFYORDER", "Edit repeating order"),
+                        "Link" => RepeatOrdersPage::get_repeat_order_link("modify", $existingRepeatOrder->ID)
+                    );
+                } else {
+                    return array(
+                        "Title" => _t("RepeatOrder.CREATEREPEATEORDER", "Turn this Order into a Repeat Order"),
+                        "Link" => RepeatOrdersPage::get_repeat_order_link("createorder", $this->Order()->ID)
+                    );
+                }
+            }
         }
     }
 }
