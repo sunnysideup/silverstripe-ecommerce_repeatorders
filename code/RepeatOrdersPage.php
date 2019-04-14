@@ -65,8 +65,20 @@ class RepeatOrdersPage extends AccountPage
     public function getCMSFields()
     {
         $fields = parent::getCMSFields();
-        $fields->addFieldToTab("Root.ExplainingRepeatOrders", new HTMLEditorField($name = "WhatAreRepeatOrders", $title = "What Are Repeat Orders - Explanation Used throughout the site.", $rows = 3, $cols = 3));
-        $fields->addFieldToTab("Root.ExplainingRepeatOrders", new HTMLEditorField($name = "OnceLoggedInYouCanCreateRepeatOrder", $title = "Explanation for people who are not logged-in yet explaining that they can turn an order into a Repeat order...", $rows = 3, $cols = 3));
+        $fields->addFieldsToTab(
+            "Root.ExplainingRepeatOrders",
+            [
+                HtmlEditorField::create(
+                    $name = "WhatAreRepeatOrders",
+                    $title = "What Are Repeat Orders."
+                )->setDescription('Explanation Used throughout the site'),
+                HtmlEditorField::create(
+                    $name = "OnceLoggedInYouCanCreateRepeatOrder",
+                    $title = "Not Logged In"
+                )->setDescription('Explanation for people who are not logged-in yet explaining that they can turn an order into a Repeat order...')
+            ]
+        );
+
         return $fields;
     }
 
