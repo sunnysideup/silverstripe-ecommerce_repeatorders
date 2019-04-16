@@ -143,7 +143,7 @@ class RepeatOrderForm extends Form
         }
 
         //required fields
-        $requiredArray = array('Start', 'End', 'Period');
+        $requiredArray = array('Start', 'Period');
         $requiredFields = RequiredFields::create($requiredArray);
 
         //make form

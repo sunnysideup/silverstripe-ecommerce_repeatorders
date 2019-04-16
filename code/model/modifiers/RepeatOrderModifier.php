@@ -21,7 +21,7 @@ class RepeatOrderModifier extends OrderModifier
      */
     public function ShowForm()
     {
-        return $this->Order()->Items() && $this->Order()->Items() && Member::currentUser();
+        return $this->Order()->Items();
     }
 
     public function getModifierForm(Controller $optionalController = NULL, Validator $optionalValidator = NULL)
