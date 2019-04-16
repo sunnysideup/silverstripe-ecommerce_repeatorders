@@ -102,10 +102,12 @@ class RepeatOrderForm extends Form
             )
         );
         $startField = DateField::create('Start', 'Start Date');
+        $startField->setAttribute('autocomplete', 'off');
         $startField->setConfig('showcalendar', true);
         $fields->push($startField);
 
         $endField = DateField::create('End', 'End Date');
+        $endField->setAttribute('autocomplete', 'off');
         $endField->setConfig('showcalendar', true);
         $fields->push($endField);
 
