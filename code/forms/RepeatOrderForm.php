@@ -8,6 +8,40 @@ class RepeatOrderForm extends Form
 
     public function __construct($controller, $name, $repeatOrderID = 0, $originatingOrder = 0)
     {
+
+        if ($repeatOrderID) {
+            $repeatOrder = DataObject::get_one('RepeatOrder', "ID = ".$repeatOrderID);
+            $items = $repeatOrder->OrderItems();
+        } else {
+            $repeatOrder = null;
+        }
+
+        $fields = RepeatOrderForm::repeatOrderFormFields($repeatOrderID, $originatingOrder);
+
+        $actions = RepeatOrderForm::repeatOrderFormActions($repeatOrder);
+
+        //required fields
+        $requiredArray = array('Start', 'Period');
+        $requiredFields = RequiredFields::create($requiredArray);
+
+        //make form
+        parent::__construct($controller, $name, $fields, $actions, $requiredFields);
+        //load data
+        if ($repeatOrder) {
+            $this->loadDataFrom(
+                [
+                    'Start' => $repeatOrder->Start,
+                    'End' => $repeatOrder->End,
+                    'Period' => $repeatOrder->Period,
+                    'Notes' => $repeatOrder->Notes,
+                    'PaymentMethod' => $repeatOrder->PaymentMethod,
+                ]
+            );
+        }
+    }
+
+    public static function repeatOrderFormFields($repeatOrderID = 0, $originatingOrder = 0)
+    {
         $order = null;
         //create vs edit
         if ($repeatOrderID) {
@@ -33,10 +67,10 @@ class RepeatOrderForm extends Form
 
         //products!
         if ($items) {
-            $fields->push(HeaderField::create('ProductsHeader', 'Products'));
+            // $fields->push(HeaderField::create('ProductsHeader', 'Products'));
             $products = Product::get()->filter(["AllowPurchase" => 1]);
             $productsMap = $products->map('ID', 'Title')->toArray();
-            $this->array_unshift_assoc($productsMap, 0, "--- Please select ---");
+            $arr1 = [0 => "--- Please select ---"] + $productsMap;
             foreach ($productsMap as $id => $title) {
                 if ($product = Product::get()->byID($id)) {
                     if (!$product->canPurchase()) {
@@ -52,15 +86,14 @@ class RepeatOrderForm extends Form
                 $itemID = $defaultProductID;
                 unset($alternativeItemsMap[$defaultProductID]);
                 $fields->push(
-                    DropdownField::create(
+                    HiddenField::create(
                         'Product[ID]['.$itemID.']',
                         "Preferred Product #$j",
-                        $productsMap,
                         $defaultProductID
                     )
                 );
                 $fields->push(
-                    NumericField::create(
+                    HiddenField::create(
                         'Product[Quantity]['.$itemID.']',
                         " ... quantity",
                         $item->Quantity
@@ -101,7 +134,11 @@ class RepeatOrderForm extends Form
                 Config::inst()->get('RepeatOrder', 'payment_methods')
             )
         );
-        $startField = DateField::create('Start', 'Start Date');
+        $startField = DateField::create(
+            'Start',
+            'Start Date',
+            date('d-m-Y')
+        );
         $startField->setAttribute('autocomplete', 'off');
         $startField->setConfig('showcalendar', true);
         $fields->push($startField);
@@ -133,34 +170,25 @@ class RepeatOrderForm extends Form
                 HiddenField::create('RepeatOrderID', 'RepeatOrderID', $repeatOrder->ID)
             );
         }
+        return $fields;
+    }
 
+    public static function repeatOrderFormActions($label = '', $repeatOrder = null)
+    {
         //actions
         $actions = FieldList::create();
         if ($repeatOrder) {
-            $actions->push(FormAction::create('doSave', 'Save'));
+            if(!$label){
+                $label = 'Save';
+            }
+            $actions->push(FormAction::create('doSave', $label));
         } else {
-            $actions->push(FormAction::create('doCreate', 'Create'));
+            if(!$label){
+                $label = 'Create';
+            }
+            $actions->push(FormAction::create('doCreate', $label));
         }
-
-        //required fields
-        $requiredArray = array('Start', 'Period');
-        $requiredFields = RequiredFields::create($requiredArray);
-
-        //make form
-        parent::__construct($controller, $name, $fields, $actions, $requiredFields);
-
-        //load data
-        if ($repeatOrder) {
-            $this->loadDataFrom(
-                [
-                    'Start' => $repeatOrder->Start,
-                    'End' => $repeatOrder->End,
-                    'Period' => $repeatOrder->Period,
-                    'Notes' => $repeatOrder->Notes,
-                    'PaymentMethod' => $repeatOrder->PaymentMethod,
-                ]
-            );
-        }
+        return $actions;
     }
 
     /**
@@ -182,22 +210,31 @@ class RepeatOrderForm extends Form
     {
         $data = Convert::raw2sql($data);
         $member = Member::currentUser();
-        if (!$member) {
+        $allowNonMembers = Config::inst()->get('RepeatOrder', 'allow_non_members');
+        if (!$member && !$allowNonMembers) {
             $form->sessionMessage('Could not find customer details.', 'bad');
             $this->controller->redirectBack();
 
             return false;
         }
-        if ($member->IsShopAdmin()) {
+        if ($member && $member->IsShopAdmin()) {
             $form->sessionMessage('Repeat orders can not be created by Shop Administrators.  Only customers can create repeat orders.', 'bad');
             $this->controller->redirectBack();
 
             return false;
         }
         if (isset($data['OrderID'])) {
+
             $orderID = intval($data['OrderID']);
             if($orderID) {
-                $order = DataObject::get_one('Order', 'Order.ID = \''.$orderID.'\' AND MemberID = \''.$member->ID.'\'');
+
+                if ($member) {
+                    $order = DataObject::get_one('Order', 'Order.ID = \''.$orderID.'\' AND MemberID = \''.$member->ID.'\'');
+                }
+                else {
+                    $order = DataObject::get_one('Order', 'Order.ID = \''.$orderID.'\'');
+                }
+
                 if ($order) {
                     $repeatOrder = RepeatOrder::create_repeat_order_from_order($order);
                     if($repeatOrder) {
@@ -218,7 +255,13 @@ class RepeatOrderForm extends Form
             }
         } else {
             $repeatOrderID = intval($data['RepeatOrderID']);
-            $repeatOrder = DataObject::get_one('RepeatOrder', 'RepeatOrder.ID = \''.$repeatOrderID.'\' AND MemberID = \''.$member->ID.'\'');
+            if ($member) {
+                $repeatOrder = DataObject::get_one('RepeatOrder', 'RepeatOrder.ID = \''.$repeatOrderID.'\' AND MemberID = \''.$member->ID.'\'');
+            }
+            else {
+                $repeatOrder = DataObject::get_one('RepeatOrder', 'RepeatOrder.ID = \''.$repeatOrderID.'\'');
+            }
+
         }
         if ($repeatOrder) {
             if ($repeatOrderItems = $repeatOrder->OrderItems()) {
@@ -241,8 +284,6 @@ class RepeatOrderForm extends Form
             }
             if (isset($data['End'])  && strtotime($data['End']) > strtotime($params["Start"])) {
                 $params['End'] = $data['End'];
-            } else {
-                $params["End"] = Date("Y-m-d", strtotime("+1 year"));
             }
             if (isset($data['Period'])) {
                 $params['Period'] = $data['Period'];
@@ -266,10 +307,12 @@ class RepeatOrderForm extends Form
 
             return false;
         }
-        $this->controller->redirect(
-            RepeatOrdersPage::get_repeat_order_link('view', $repeatOrder->ID)
-        );
 
+        if(!$request->isAjax()){
+            $this->controller->redirect(
+                RepeatOrdersPage::get_repeat_order_link('view', $repeatOrder->ID)
+            );
+        }
         return true;
     }
 

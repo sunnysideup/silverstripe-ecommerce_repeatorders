@@ -14,7 +14,6 @@ class RepeatOrderModifier extends OrderModifier
         return _t("RepeatOrderModifier.REPEATORDERMODIFIERS", "Repeat Order Modifiers");
     }
 
-
     /**
      * standard OrderModifier Method
      * Should we show a form in the checkout page for this modifier?
@@ -27,6 +26,7 @@ class RepeatOrderModifier extends OrderModifier
     public function getModifierForm(Controller $optionalController = NULL, Validator $optionalValidator = NULL)
     {
         $fields = FieldList::create();
+        $actions = null;
         $fields->push($this->headingField());
         $fields->push($this->descriptionField());
         $order = ShoppingCart::current_order();
@@ -40,7 +40,9 @@ class RepeatOrderModifier extends OrderModifier
             $orderID = 0;
         }
         $createLink = RepeatOrdersPage::get_repeat_order_link('createorder', $orderID);
-        if ($repeatOrder && $currentMember) {
+        $allowNonMembers = Config::inst()->get('RepeatOrder', 'allow_non_members');
+
+        if (($repeatOrder && $currentMember) || ($repeatOrder && $allowNonMembers)) {
 
             $updateLink = RepeatOrdersPage::get_repeat_order_link('modify', $repeatOrder->ID);
             $cancelLink = RepeatOrdersPage::get_repeat_order_link('cancel', $repeatOrder->ID);
@@ -69,7 +71,7 @@ HTML
                 );
             }
             Requirements::customScript("jQuery(document).ready(function(){jQuery(\"input[name='action_processOrder']\").hide();});", "hide_action_processOrder");
-        } elseif ($currentMember) {
+        } elseif ($currentMember || $allowNonMembers) {
             if ($order->RepeatOrderID) {
                 $fields->push(
                     LiteralField::create(
@@ -79,15 +81,16 @@ HTML
 HTML
                     ));
             } else {
+                $repeatOrderFormFields = RepeatOrderForm::repeatOrderFormFields(0, $orderID);
+                foreach ($repeatOrderFormFields as $repeatOrderFormField) {
+                    $fields->push(
+                        $repeatOrderFormField
+                    );
+                }
+
+                $repeatOrderFormLink = RepeatOrdersPage::get_repeat_order_link('ajaxcreateorder', $orderID);
                 $fields->push(
-                    LiteralField::create(
-                        'createRepeatOrder',
-<<<HTML
-                        <div class="Actions">
-                            <input  id="ModifyRepeatOrderCreate" class="action" type="button" value="Turn this Order into a Repeat Order" onclick="window.location='{$createLink}';" />
-                        </div>
-HTML
-                    )
+                    HiddenField::create('AjaxSubmissionLink', 'AjaxSubmissionLink', $repeatOrderFormLink)
                 );
                 $page = DataObject::get_one("RepeatOrdersPage");
                 if ($page) {
@@ -98,6 +101,12 @@ HTML
 HTML
                     ));
                 }
+
+                $actions = RepeatOrderForm::repeatOrderFormActions('Confirm and Pay');
+
+                //required fields
+                $requiredArray = array('Start', 'Period');
+                $optionalValidator = RequiredFields::create($requiredArray);
             }
         } else {
             $page = DataObject::get_one("RepeatOrdersPage");
@@ -111,11 +120,16 @@ HTML
                 ));
             }
         }
+
+        if($actions === NULL){
+            $actions = FieldList::create();
+        }
+
         return RepeatOrderModifierForm::create(
             $optionalController,
             'RepeatOrderModifier',
             $fields,
-            $actions = FieldList::create(),
+            $actions,
             $optionalValidator
         );
     }

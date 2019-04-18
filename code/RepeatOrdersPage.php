@@ -142,6 +142,7 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller
         'view' => true,
         'modify' => true,
         'admin' => true,
+        'ajaxcreateorder' => true,
         'RepeatOrderForm' => true
     );
 
@@ -199,8 +200,8 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller
                 );
             } else {
                 $params = array(
-                    'RepeatOrder' => null,
-                    'Message' => "You can not view this Order."
+                    'RepeatOrder' => '',
+                    'Message' => "You do not have permission to view this Order, please log in."
                 );
             }
         }
@@ -230,6 +231,23 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller
             ['RepeatOrdersPage_edit', 'Page'],
             $params
         );
+    }
+
+    public function ajaxcreateorder($request)
+    {
+        $orderID = intval($request->postVar('OrderID'));
+        if ($request->isAjax()) {
+            $orderForm = RepeatOrderForm::create(
+                $this,
+                'RepeatOrderForm',
+                0,
+                $orderID
+            );
+            $orderForm->doCreate($this->request->postVars(), $orderForm, $request);
+        }
+        else {
+            user_error('This function can only be called via Ajax and also requires an OrderID to be posted.');
+        }
     }
 
     /**

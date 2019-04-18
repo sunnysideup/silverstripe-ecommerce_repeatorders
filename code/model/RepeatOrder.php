@@ -34,6 +34,9 @@ class RepeatOrder extends DataObject
      */
     private static $minimum_days_in_the_future = 1;
 
+
+    private static $allow_non_members = false;
+
     /**
      * Standard SS variable
      */
@@ -811,6 +814,10 @@ HTML
 
     public function canView($member = null)
     {
+        $allowNonMembers = Config::inst()->get('RepeatOrder', 'allow_non_members');
+        if($allowNonMembers){
+            return true;
+        }
         $member = Member::currentUser();
         if ($member) {
             if ($member->IsShopAdmin()) {
@@ -826,10 +833,16 @@ HTML
     public function canEdit($member = null)
     {
         if (in_array($this->Status, ['Pending', 'Active'])) {
-            return $this->canView($member);
-        } else {
-            return false;
+            if ($member) {
+                if ($member->IsShopAdmin()) {
+                    return true;
+                }
+                if ($this->MemberID == $member->ID) {
+                    return true;
+                }
+            }
         }
+        return false;
     }
 
     public function canDelete($member = null)
