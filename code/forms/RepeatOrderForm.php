@@ -40,14 +40,17 @@ class RepeatOrderForm extends Form
         }
     }
 
-    public static function repeatOrderFormFields($repeatOrderID = 0, $originatingOrder = 0)
+    public static function repeatOrderFormFields($repeatOrderID = 0, $originatingOrder = 0, $isCheckout = false)
     {
         $order = null;
+        $repeatOrder = null;
         //create vs edit
         if ($repeatOrderID) {
             $repeatOrder = DataObject::get_one('RepeatOrder', "ID = ".$repeatOrderID);
             $items = $repeatOrder->OrderItems();
-        } else {
+        }
+
+        if(is_null($repeatOrder) || $isCheckout){
             $repeatOrder = null;
             if ($originatingOrder) {
                 $order = Order::get_by_id_if_can_view($originatingOrder);

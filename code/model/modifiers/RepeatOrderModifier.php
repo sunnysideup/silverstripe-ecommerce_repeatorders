@@ -14,6 +14,8 @@ class RepeatOrderModifier extends OrderModifier
         return _t("RepeatOrderModifier.REPEATORDERMODIFIERS", "Repeat Order Modifiers");
     }
 
+    public static $show_post_submit_actions = false;
+
     /**
      * standard OrderModifier Method
      * Should we show a form in the checkout page for this modifier?
@@ -45,7 +47,7 @@ class RepeatOrderModifier extends OrderModifier
 
         if (($repeatOrder && $currentMember) || ($repeatOrder && $allowNonMembers)) {
             if ($repeatOrder->canModify()) {
-                $repeatOrderFormFields = RepeatOrderForm::repeatOrderFormFields($repeatOrder->ID, $orderID);
+                $repeatOrderFormFields = RepeatOrderForm::repeatOrderFormFields($repeatOrder->ID, $orderID, true);
                 foreach ($repeatOrderFormFields as $repeatOrderFormField) {
                     $fields->push(
                         $repeatOrderFormField
@@ -154,26 +156,28 @@ class RepeatOrderModifier extends OrderModifier
      */
     public function PostSubmitAction()
     {
-        $order = $this->Order();
-        if($order && $order->exists()) {
-            if ($order->MemberID) {
-                if($order->RepeatOrderID) {
-                    return array(
-                        "Title" => _t("RepeatOrder.MODIFYORDER", "Edit repeating order"),
-                        "Link" => RepeatOrdersPage::get_repeat_order_link("view", $order->RepeatOrderID)
-                    );
-                }
-                $existingRepeatOrder = RepeatOrder::get()->filter(['OriginatingOrderID' => $order->ID])->first();
-                if($existingRepeatOrder && $existingRepeatOrder->exists()) {
-                    return array(
-                        "Title" => _t("RepeatOrder.MODIFYORDER", "Edit repeating order"),
-                        "Link" => RepeatOrdersPage::get_repeat_order_link("modify", $existingRepeatOrder->ID)
-                    );
-                } else {
-                    return array(
-                        "Title" => _t("RepeatOrder.CREATEREPEATEORDER", "Turn this Order into a Repeat Order"),
-                        "Link" => RepeatOrdersPage::get_repeat_order_link("createorder", $this->Order()->ID)
-                    );
+        if($this->config()->get('$show_post_submit_actions')){
+            $order = $this->Order();
+            if($order && $order->exists()) {
+                if ($order->MemberID) {
+                    if($order->RepeatOrderID) {
+                        return array(
+                            "Title" => _t("RepeatOrder.MODIFYORDER", "Edit repeating order"),
+                            "Link" => RepeatOrdersPage::get_repeat_order_link("view", $order->RepeatOrderID)
+                        );
+                    }
+                    $existingRepeatOrder = RepeatOrder::get()->filter(['OriginatingOrderID' => $order->ID])->first();
+                    if($existingRepeatOrder && $existingRepeatOrder->exists()) {
+                        return array(
+                            "Title" => _t("RepeatOrder.MODIFYORDER", "Edit repeating order"),
+                            "Link" => RepeatOrdersPage::get_repeat_order_link("modify", $existingRepeatOrder->ID)
+                        );
+                    } else {
+                        return array(
+                            "Title" => _t("RepeatOrder.CREATEREPEATEORDER", "Turn this Order into a Repeat Order"),
+                            "Link" => RepeatOrdersPage::get_repeat_order_link("createorder", $this->Order()->ID)
+                        );
+                    }
                 }
             }
         }

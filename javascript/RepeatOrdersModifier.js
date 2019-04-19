@@ -61,6 +61,7 @@ var RepeatOrders = {
                     alert('Error: ' + xhr.responseText);
                 },
                 success: function(data, textStatus, jqXHR){
+                    jQuery(RepeatOrders.formID).removeClass(RepeatOrders.loadingClass);
                     jQuery(RepeatOrders.nextStepLink).get(0).click();
                 }
             }
@@ -70,7 +71,7 @@ var RepeatOrders = {
 
     // post-submit callback
     showResponse: function (responseText, statusText)  {
-        jQuery(RepeatOrders.formID).removeClass(RepeatOrders.loadingClass);
+        //shoudln't happen as we should have been redirected to checkout by this point
     },
 
     findSubmitAction: function(data) {
