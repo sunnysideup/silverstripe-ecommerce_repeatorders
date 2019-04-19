@@ -131,19 +131,25 @@ class RepeatOrderForm extends Form
             DropdownField::create(
                 'PaymentMethod',
                 'Payment Method',
-                Config::inst()->get('RepeatOrder', 'payment_methods')
+                Config::inst()->get('RepeatOrder', 'payment_methods'),
+                $repeatOrder ? $repeatOrder->PaymentMethod : ''
             )
         );
+
         $startField = DateField::create(
             'Start',
             'Start Date',
-            date('d-m-Y')
+            $repeatOrder ? $repeatOrder->Start : date('d-m-Y')
         );
         $startField->setAttribute('autocomplete', 'off');
         $startField->setConfig('showcalendar', true);
         $fields->push($startField);
 
-        $endField = DateField::create('End', 'End Date');
+        $endField = DateField::create(
+            'End',
+            'End Date',
+            $repeatOrder ? $repeatOrder->End : ''
+        );
         $endField->setAttribute('autocomplete', 'off');
         $endField->setConfig('showcalendar', true);
         $fields->push($endField);
@@ -152,11 +158,22 @@ class RepeatOrderForm extends Form
             DropdownField::create(
                 'Period',
                 'Period',
-                Config::inst()->get('RepeatOrder', 'period_fields')
+                Config::inst()->get('RepeatOrder', 'period_fields'),
+                $repeatOrder ? $repeatOrder->Period : ''
             )
         );
+
         $fields->push(
-            TextareaField::create('Notes', 'Notes')
+            TextareaField::create(
+                'Notes',
+                'Notes',
+                $repeatOrder ? $repeatOrder->Notes : ''
+            )
+        );
+
+        $repeatOrderFormLink = RepeatOrdersPage::get_repeat_order_link('ajaxcreateorder', $order ? $order->ID : 0);
+        $fields->push(
+            HiddenField::create('AjaxSubmissionLink', 'AjaxSubmissionLink', $repeatOrderFormLink)
         );
 
         //hidden field
@@ -240,6 +257,9 @@ class RepeatOrderForm extends Form
                     if($repeatOrder) {
                         $repeatOrder->OriginatingOrderID = $order->ID;
                         $repeatOrder->write();
+
+                        $order->RepeatOrderID = $repeatOrder->ID;
+                        $order->write();
                     } else {
                         $form->sessionMessage('Sorry, an error occured - we could not create your subscribtion order. Please try again.', 'bad');
                         $this->controller->redirectBack();
@@ -293,7 +313,7 @@ class RepeatOrderForm extends Form
             if (isset($data['PaymentMethod'])) {
                 $params['PaymentMethod'] = $data['PaymentMethod'];
             } else {
-                $data['PaymentMethod'] = RepeatOrder::default_payment_method_key();
+                $params['PaymentMethod'] = RepeatOrder::default_payment_method_key();
             }
             if (isset($data['Notes'])) {
                 $params['Notes'] = $data['Notes'];
@@ -314,22 +334,5 @@ class RepeatOrderForm extends Form
             );
         }
         return true;
-    }
-
-    /**
-     * add item to the beginning of array
-     * @param  array $arr [description]
-     * @param  mixed $key [description]
-     * @param  mixed $val [description]
-
-     * @return array
-     */
-    private function array_unshift_assoc(&$arr, $key, $val)
-    {
-        $arr = array_reverse($arr, true);
-        $arr[$key] = $val;
-        $arr = array_reverse($arr, true);
-
-        return $arr;
     }
 }

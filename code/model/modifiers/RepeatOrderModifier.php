@@ -25,6 +25,7 @@ class RepeatOrderModifier extends OrderModifier
 
     public function getModifierForm(Controller $optionalController = NULL, Validator $optionalValidator = NULL)
     {
+        $showCreateRepeatOrderForm = false;
         $fields = FieldList::create();
         $actions = null;
         $fields->push($this->headingField());
@@ -43,70 +44,39 @@ class RepeatOrderModifier extends OrderModifier
         $allowNonMembers = Config::inst()->get('RepeatOrder', 'allow_non_members');
 
         if (($repeatOrder && $currentMember) || ($repeatOrder && $allowNonMembers)) {
-
-            $updateLink = RepeatOrdersPage::get_repeat_order_link('modify', $repeatOrder->ID);
-            $cancelLink = RepeatOrdersPage::get_repeat_order_link('cancel', $repeatOrder->ID);
-
             if ($repeatOrder->canModify()) {
-                $fields->push(
-                    LiteralField::create(
-                        'modifyRepeatOrder',
-<<<HTML
-                        <div class="Actions">
-                            <input id="ModifyRepeatOrderUpdate" class="action" type="button" value="Edit your associated Repeat Order" onclick="window.location='{$updateLink}';" />
-                        </div>
-HTML
-                    )
-                );
-            } else {
-                $fields->push(
-                    LiteralField::create(
-                        'createRepeatOrder',
-<<<HTML
-                        <div class="Actions">
-                            <input id="ModifyRepeatOrderCreate" class="action" type="button" value="Create a new Repeat Order" onclick="window.location='{$createLink}';" />
-                        </div>
-HTML
-                    )
-                );
-            }
-            Requirements::customScript("jQuery(document).ready(function(){jQuery(\"input[name='action_processOrder']\").hide();});", "hide_action_processOrder");
-        } elseif ($currentMember || $allowNonMembers) {
-            if ($order->RepeatOrderID) {
-                $fields->push(
-                    LiteralField::create(
-                        "whatAreRepeatOrders",
-<<<HTML
-                        <div id="WhatAreRepeatOrders">This order is based on a Repeat Order.</div>
-HTML
-                    ));
-            } else {
-                $repeatOrderFormFields = RepeatOrderForm::repeatOrderFormFields(0, $orderID);
+                $repeatOrderFormFields = RepeatOrderForm::repeatOrderFormFields($repeatOrder->ID, $orderID);
                 foreach ($repeatOrderFormFields as $repeatOrderFormField) {
                     $fields->push(
                         $repeatOrderFormField
                     );
                 }
 
-                $repeatOrderFormLink = RepeatOrdersPage::get_repeat_order_link('ajaxcreateorder', $orderID);
+                $cancelRepeatOrderLink = RepeatOrdersPage::get_repeat_order_link('ajaxcheckoutcancel', $repeatOrder->ID);
                 $fields->push(
-                    HiddenField::create('AjaxSubmissionLink', 'AjaxSubmissionLink', $repeatOrderFormLink)
+                    HiddenField::create('AjaxCancelLink', 'AjaxCancelLink', $cancelRepeatOrderLink)
                 );
-                $page = DataObject::get_one("RepeatOrdersPage");
-                if ($page) {
-                    $fields->push(
-                        LiteralField::create("whatAreRepeatOrders",
-<<<HTML
-                        <div id="WhatAreRepeatOrders">$page->WhatAreRepeatOrders</div>
-HTML
-                    ));
-                }
 
-                $actions = RepeatOrderForm::repeatOrderFormActions('Confirm and Pay');
-
-                //required fields
-                $requiredArray = array('Start', 'Period');
-                $optionalValidator = RequiredFields::create($requiredArray);
+                $actions = RepeatOrderForm::repeatOrderFormActions('Update', $repeatOrder);
+                $actions->push(
+                    FormAction::create('doCancel', 'Cancel Subscription')
+                );
+            }
+            else {
+                $showCreateRepeatOrderForm = true;
+            }
+            Requirements::customScript("jQuery(document).ready(function(){jQuery(\"input[name='action_processOrder']\").hide();});", "hide_action_processOrder");
+        } elseif ($currentMember || $allowNonMembers) {
+            //this shouldn't actually happen as the repeat order should have been found and used in the previous if statement
+            if ($order->RepeatOrderID) {
+                $fields->push(
+                    LiteralField::create(
+                        "whatAreRepeatOrders",
+                        '<div id="WhatAreRepeatOrders">This order is based on a Repeat Order.</div>'
+                    )
+                );
+            } else {
+                $showCreateRepeatOrderForm = true;
             }
         } else {
             $page = DataObject::get_one("RepeatOrdersPage");
@@ -114,11 +84,34 @@ HTML
                 $fields->push(
                     LiteralField::create(
                         "whatAreRepeatOrders",
-<<<HTML
-                        <div id="WhatAreRepeatOrders">$page->OnceLoggedInYouCanCreateRepeatOrder</div>
-HTML
-                ));
+                        '<div id="WhatAreRepeatOrders">' . $page->OnceLoggedInYouCanCreateRepeatOrder . '</div>'
+                    )
+                );
             }
+        }
+
+        if($showCreateRepeatOrderForm){
+            $repeatOrderFormFields = RepeatOrderForm::repeatOrderFormFields(0, $orderID);
+            foreach ($repeatOrderFormFields as $repeatOrderFormField) {
+                $fields->push(
+                    $repeatOrderFormField
+                );
+            }
+
+            $page = DataObject::get_one("RepeatOrdersPage");
+            if ($page) {
+                $fields->push(
+                    LiteralField::create("whatAreRepeatOrders",
+                    '<div id="WhatAreRepeatOrders">' . $page->WhatAreRepeatOrders . '</div>'
+                    )
+                );
+            }
+
+            $actions = RepeatOrderForm::repeatOrderFormActions('Confirm and Pay');
+
+            //required fields
+            $requiredArray = array('Start', 'Period');
+            $optionalValidator = RequiredFields::create($requiredArray);
         }
 
         if($actions === NULL){

@@ -19,6 +19,8 @@ var RepeatOrders = {
 
     ajaxSubmissionLink: jQuery('#RepeatOrderModifierForm_RepeatOrderModifier_AjaxSubmissionLink').val(),
 
+    ajaxCancelLink: jQuery('#RepeatOrderModifierForm_RepeatOrderModifier_AjaxCancelLink').val(),
+
     delayForAutoSubmit: 1000,
 
     availableCountries: new Array(),
@@ -43,17 +45,22 @@ var RepeatOrders = {
         jQuery(RepeatOrders.actionsClass).hide();
         jQuery(RepeatOrders.formID).addClass(RepeatOrders.loadingClass);
 
+        let ajaxURL = RepeatOrders.ajaxSubmissionLink;
+        let action = RepeatOrders.findSubmitAction(formData);
+        if(action == 'action_doCancel'){
+            ajaxURL = RepeatOrders.ajaxCancelLink;
+        }
+
         jQuery.ajax(
             {
                 type: options.type,
-                url: RepeatOrders.ajaxSubmissionLink,
+                url: ajaxURL,
                 data: formData,
                 error: function(jqXHR, textStatus, errorThrown){
                     console.log(errorThrown);
                     alert('Error: ' + xhr.responseText);
                 },
                 success: function(data, textStatus, jqXHR){
-                    console.log(jQuery(RepeatOrders.nextStepLink));
                     jQuery(RepeatOrders.nextStepLink).get(0).click();
                 }
             }
@@ -64,7 +71,15 @@ var RepeatOrders = {
     // post-submit callback
     showResponse: function (responseText, statusText)  {
         jQuery(RepeatOrders.formID).removeClass(RepeatOrders.loadingClass);
+    },
+
+    findSubmitAction: function(data) {
+        //done in reverse as submit is most likely to be the last item in the data array
+        for (var i = (data.length - 1); i >= 0; i--) {
+            if (data[i].type === 'submit') {
+                return data[i].name;
+            }
+        }
+        return null;
     }
-
-
 }

@@ -142,6 +142,7 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller
         'view' => true,
         'modify' => true,
         'admin' => true,
+        'ajaxcheckoutcancel' => true,
         'ajaxcreateorder' => true,
         'RepeatOrderForm' => true
     );
@@ -246,7 +247,28 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller
             $orderForm->doCreate($this->request->postVars(), $orderForm, $request);
         }
         else {
-            user_error('This function can only be called via Ajax and also requires an OrderID to be posted.');
+            user_error('This function can only be called via Ajax.');
+        }
+    }
+
+    //* function should only be called from the checkout and only via ajax
+    public function ajaxcheckoutcancel($request)
+    {
+        if ($request->isAjax()) {
+            if ($repeatOrderID = intval($request->param("ID"))) {
+                $repeatOrder = DataObject::get_one('RepeatOrder', ["ID" => $repeatOrderID]);
+                if ($repeatOrder && $repeatOrder->canModify()) {
+                    $repeatOrder->Status = 'MemberCancelled';
+                    $repeatOrder->write();
+                    $order = $repeatOrder->OriginatingOrder();
+                    $order->RepeatOrderID = 0;
+                    $order->write();
+                    return true;
+                }
+            }
+        }
+        else {
+            user_error('This function can only be called via Ajax.');
         }
     }
 

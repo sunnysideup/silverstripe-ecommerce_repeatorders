@@ -212,16 +212,6 @@ class RepeatOrder extends DataObject
     }
 
     /**
-     * Can it be edited, alias for canEdit
-     *
-     * @return bool
-     */
-    public function canModify($member = null)
-    {
-        return $this->canEdit();
-    }
-
-    /**
      * Link for viewing
      * @return string
      */
@@ -828,6 +818,22 @@ HTML
             }
         }
         return false;
+    }
+
+    /**
+     * Can it be edited, alias for canEdit
+     *
+     * @return bool
+     */
+    public function canModify($member = null)
+    {
+        $originatingOrder = $this->OriginatingOrder();
+        if($originatingOrder && in_array($this->Status, ['Pending', 'Active'])){
+            if($originatingOrder->Status()->Code === "CREATED"){
+                return true;
+            }
+        }
+        return $this->canEdit();
     }
 
     public function canEdit($member = null)
