@@ -42,7 +42,7 @@
         </ul>
 <% end_if %>
     </td>
-    <td class="center quantity">$Quantity</td>
+    <td class="left quantity">$Quantity</td>
 </tr>
 <% end_control %>
 <tr class="gap">

@@ -4,7 +4,6 @@ class RepeatOrder_OrderItem extends DataObject
     public static $db = array(
         'Quantity' => 'Int'
     );
-
     public static $has_one = array(
         'Product' => 'Product',
         'Order' => 'RepeatOrder',
@@ -63,6 +62,32 @@ class RepeatOrder_OrderItem extends DataObject
             return $product->ID;
         }
         return 0;
+    }
+
+    /**
+     * @return Field (EcomQuantityField)
+     **/
+    public function IDField()
+    {
+        $field = HiddenField::create(
+            'Product[ID]['.$this->Product()->ID.']',
+            "",
+            $this->Product()->ID
+        );
+        return $field;
+    }
+
+    /**
+     * @return Field (EcomQuantityField)
+     **/
+    public function QuantityField()
+    {
+        $field = NumericField::create(
+            'Product[Quantity]['.$this->Product()->ID.']',
+            "",
+            $this->Quantity
+        )->addExtraClass('ajaxQuantityField');
+        return $field;
     }
 
     /**

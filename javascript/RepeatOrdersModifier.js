@@ -58,7 +58,7 @@ var RepeatOrders = {
                 data: formData,
                 error: function(jqXHR, textStatus, errorThrown){
                     console.log(errorThrown);
-                    alert('Error: ' + xhr.responseText);
+                    alert('Error: ' + jqXHR.responseText);
                 },
                 success: function(data, textStatus, jqXHR){
                     jQuery(RepeatOrders.formID).removeClass(RepeatOrders.loadingClass);

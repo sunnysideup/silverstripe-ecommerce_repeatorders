@@ -839,6 +839,9 @@ HTML
     public function canEdit($member = null)
     {
         if (in_array($this->Status, ['Pending', 'Active'])) {
+            if(!$member){
+                $member = Member::currentUser();
+            }
             if ($member) {
                 if ($member->IsShopAdmin()) {
                     return true;

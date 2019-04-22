@@ -1,47 +1,54 @@
-<ul id="PastOrders">
-    <li>
-        <h3><% _t("HISTORY","Your Order History") %></h3>
-    </li>
-    <li>
-        <h4><% _t("COMPLETED","Repeat Orders") %></h4>
-    </li>
-    <% if RepeatOrders %>
-        <% control RepeatOrders %>
-            <li>
-                <a href="$Link" title="<% sprintf(_t("READMORE","Read more on Order #%s"),$ID) %>"><% _t("ORDER","Order #") %>{$ID}</a> ($Created.Nice)
-            </li>
-        <% end_control %>
-    <% else %>
-        <li>
-            <% _t("NOCOMPLETED","No Repeat orders were found.") %>
-        </li>
+<% if CurrentMember  %>
+    <div id="RepeatOrdersHolder">
+        <h3><% _t("RepeatOrders.MySubscriptions","My Subscriptions") %></h3>
+        <% if RepeatOrders %>
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col" class="left">Subscription</th>
+                        <th scope="col" class="left">Status</th>
+                        <th scope="col" class="right">Start Date</th>
+                        <th scope="col" class="right">End Date</th>
+                        <th scope="col" class="right">Frequency</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% loop RepeatOrders %>
+                        <tr>
+                            <td class="left">
+                                <a href="$Link">
+                                    Subscription #{$ID}
+                                </a><br>
+                                created $Created.Nice
+                            </td>
+                            <td class="left">
+                                $TableStatus
+                            </td>
+                            <td class="right">
+                                $Start.Nice
+                            </td>
+                            <td class="right">
+                                <% if $End %>
+                                    $End.Nice
+                                <% else %>
+                                    Not Specified
+                                <% end_if %>
+                            </td>
+                            <td class="right">
+                                $Period
+                            </td>
+                        </tr>
+                    <% end_loop %>
+                </tbody>
+            </table>
+        <% else %>
+                <% _t("RepeatOrders.NOREPEATORDERS","You don't currently have any subscriptions.") %>
+        <% end_if %>
+    </div>
+<% else %>
+    <% if MemberForm %>
+        <div id="MemberForm">
+            $MemberForm
+        </div>
     <% end_if %>
-    <li>
-        <h4><% _t("COMPLETED","Completed Orders") %></h4>
-    </li>
-    <% if CompleteOrders %>
-        <% control CompleteOrders %>
-            <li>
-                <a href="$Link" title="<% sprintf(_t("READMORE","Read more on Order #%s"),$ID) %>"><% _t("ORDER","Order #") %>{$ID}</a> ($Created.Nice)
-            </li>
-        <% end_control %>
-    <% else %>
-        <li>
-            <% _t("NOCOMPLETED","No completed orders were found.") %>
-        </li>
-    <% end_if %>
-    <li>
-        <h4><% _t("INCOMPLETE","Incomplete Orders") %></h4>
-    </li>
-    <% if IncompleteOrders %>
-        <% control IncompleteOrders %>
-            <li>
-                <a href="$Link" title="<% sprintf(_t("READMORE","Read more on Order #%s"),$ID) %>"><% _t("ORDER","Order #") %>{$ID}</a> ($Created.Nice)
-            </li>
-        <% end_control %>
-    <% else %>
-        <li>
-            <% _t("NOINCOMPLETE","No incomplete orders were found.") %>
-        </li>
-    <% end_if %>
-</ul>
+<% end_if %>

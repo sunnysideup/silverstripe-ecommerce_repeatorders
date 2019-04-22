@@ -36,6 +36,10 @@ RepeatOrdersPage:
         "Saturday": "Saturday"
         "Sunday": "Sunday"
 
+AccountPage:
+  extensions:
+    - AccountPageDE
+
 OrderFormAddress:
   extensions:
     - RepeatOrders_OrderFormAddressExtension

@@ -6,7 +6,7 @@ class RepeatOrderForm extends Form
 
     private static $number_of_product_alternatives = 0;
 
-    public function __construct($controller, $name, $repeatOrderID = 0, $originatingOrder = 0)
+    public function __construct($controller, $name, $repeatOrderID = 0, $originatingOrder = 0, $showTable = false)
     {
 
         if ($repeatOrderID) {
@@ -16,9 +16,8 @@ class RepeatOrderForm extends Form
             $repeatOrder = null;
         }
 
-        $fields = RepeatOrderForm::repeatOrderFormFields($repeatOrderID, $originatingOrder);
-
-        $actions = RepeatOrderForm::repeatOrderFormActions($repeatOrder);
+        $fields = RepeatOrderForm::repeatOrderFormFields($repeatOrderID, $originatingOrder, false, $showTable);
+        $actions = RepeatOrderForm::repeatOrderFormActions('', $repeatOrder);
 
         //required fields
         $requiredArray = array('Start', 'Period');
@@ -40,7 +39,7 @@ class RepeatOrderForm extends Form
         }
     }
 
-    public static function repeatOrderFormFields($repeatOrderID = 0, $originatingOrder = 0, $isCheckout = false)
+    public static function repeatOrderFormFields($repeatOrderID = 0, $originatingOrder = 0, $isCheckout = false, $showTable = false)
     {
         $order = null;
         $repeatOrder = null;
@@ -71,51 +70,61 @@ class RepeatOrderForm extends Form
         //products!
         if ($items) {
             // $fields->push(HeaderField::create('ProductsHeader', 'Products'));
-            $products = Product::get()->filter(["AllowPurchase" => 1]);
-            $productsMap = $products->map('ID', 'Title')->toArray();
-            $arr1 = [0 => "--- Please select ---"] + $productsMap;
-            foreach ($productsMap as $id => $title) {
-                if ($product = Product::get()->byID($id)) {
-                    if (!$product->canPurchase()) {
-                        unset($productsMap[$id]);
+            if($repeatOrder && $showTable) {
+                $fields->push(
+                    LiteralField::create(
+                        'OverviewTable',
+                        $repeatOrder->renderWith('RepeatOrder_Order')
+                    )
+                );
+            }
+            else {
+                $products = Product::get()->filter(["AllowPurchase" => 1]);
+                $productsMap = $products->map('ID', 'Title')->toArray();
+                $arr1 = [0 => "--- Please select ---"] + $productsMap;
+                foreach ($productsMap as $id => $title) {
+                    if ($product = Product::get()->byID($id)) {
+                        if (!$product->canPurchase()) {
+                            unset($productsMap[$id]);
+                        }
                     }
                 }
-            }
-            $j = 0;
-            foreach ($items as $key => $item) {
-                $j++;
-                $alternativeItemsMap = $productsMap;
-                $defaultProductID =  $item->ProductID ? $item->ProductID : $item->BuyableID;
-                $itemID = $defaultProductID;
-                unset($alternativeItemsMap[$defaultProductID]);
-                $fields->push(
-                    HiddenField::create(
-                        'Product[ID]['.$itemID.']',
-                        "Preferred Product #$j",
-                        $defaultProductID
-                    )
-                );
-                $fields->push(
-                    HiddenField::create(
-                        'Product[Quantity]['.$itemID.']',
-                        " ... quantity",
-                        $item->Quantity
-                    )
-                );
-                $altCount = Config::inst()->get('RepeatOrderForm', 'number_of_product_alternatives');
-                if($altCount > 9) {
-                    user_error('You can only have up to nine alternatives buyables');
-                } elseif($altCount > 0) {
-                    for ($i = 1; $i <= $altCount; $i++) {
-                        $alternativeField = "Alternative".$i."ID";
-                        $fields->push(
-                            DropdownField::create(
-                                'Product['.$alternativeField.']['.$itemID.']',
-                                " ... alternative $i",
-                                $alternativeItemsMap,
-                                (isset($item->$alternativeField) ? $item->$alternativeField : 0)
-                            )
-                        );
+                $j = 0;
+                foreach ($items as $key => $item) {
+                    $j++;
+                    $alternativeItemsMap = $productsMap;
+                    $defaultProductID =  $item->ProductID ? $item->ProductID : $item->BuyableID;
+                    $itemID = $defaultProductID;
+                    unset($alternativeItemsMap[$defaultProductID]);
+                    $fields->push(
+                        HiddenField::create(
+                            'Product[ID]['.$itemID.']',
+                            "Preferred Product #$j",
+                            $defaultProductID
+                        )
+                    );
+                    $fields->push(
+                        HiddenField::create(
+                            'Product[Quantity]['.$itemID.']',
+                            " ... quantity",
+                            $item->Quantity
+                        )
+                    );
+                    $altCount = Config::inst()->get('RepeatOrderForm', 'number_of_product_alternatives');
+                    if($altCount > 9) {
+                        user_error('You can only have up to nine alternatives buyables');
+                    } elseif($altCount > 0) {
+                        for ($i = 1; $i <= $altCount; $i++) {
+                            $alternativeField = "Alternative".$i."ID";
+                            $fields->push(
+                                DropdownField::create(
+                                    'Product['.$alternativeField.']['.$itemID.']',
+                                    " ... alternative $i",
+                                    $alternativeItemsMap,
+                                    (isset($item->$alternativeField) ? $item->$alternativeField : 0)
+                                )
+                            );
+                        }
                     }
                 }
             }

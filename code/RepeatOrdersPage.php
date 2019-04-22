@@ -9,7 +9,7 @@
  */
 class RepeatOrdersPage extends AccountPage
 {
-
+    use RepeatOrdersTrait;
     /**
      * Standard SS method
      */
@@ -80,20 +80,6 @@ class RepeatOrdersPage extends AccountPage
         );
 
         return $fields;
-    }
-
-    /**
-     * Returns all {@link Order} records for this
-     * member that are completed.
-     *
-     * @return ArrayList
-     */
-    public function RepeatOrders()
-    {
-        $memberID = Member::currentUserID();
-        return RepeatOrder::get()
-            ->where("\"MemberID\" = '$memberID' AND \"Status\" NOT IN ('MemberCancelled', 'AdminCancelled')")
-            ->sort("\"Created\" DESC");
     }
 
     /**
@@ -172,20 +158,6 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller
         );
     }
 
-    public function cancel($request)
-    {
-        if ($repeatOrderID = intval($request->param("ID"))) {
-            $repeatOrder = DataObject::get_one('RepeatOrder', ["ID" => $repeatOrderID]);
-            if ($repeatOrder && $repeatOrder->canEdit()) {
-                $repeatOrder->Status = 'MemberCancelled';
-                $repeatOrder->write();
-
-                return $this->redirectBack();
-            }
-        }
-        die("Could not cancel repeat order.");
-    }
-
     public function view($request)
     {
         $params = array(
@@ -215,23 +187,66 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller
 
     public function modify($request)
     {
-        $params = array(
+        $params = [
             'RepeatOrder' => false,
             'Message' => 'There is no order by that ID.'
-        );
+        ];
         if ($repeatOrderID = intval($request->param("ID"))) {
             $repeatOrder = DataObject::get_by_id('RepeatOrder', $repeatOrderID);
-            if ($repeatOrder->canEdit()) {
-                $params = array(
-                    'RepeatOrder' => false,
+            $member = Member::currentUser();
+            if ($repeatOrder->canEdit($member)) {
+                $params = [
+                    'RepeatOrder' => $repeatOrder,
                     'Message' => 'Please edit your details below.'
-                );
+                ];
             }
         }
         return $this->renderWith(
             ['RepeatOrdersPage_edit', 'Page'],
             $params
         );
+    }
+
+    public function cancel($request)
+    {
+
+        if ($repeatOrderID = intval($request->param("ID"))) {
+            $repeatOrder = DataObject::get_one('RepeatOrder', ["ID" => $repeatOrderID]);
+            $member = Member::currentUser();
+            if ($repeatOrder && $repeatOrder->canEdit($member)) {
+                $repeatOrder->Status = 'MemberCancelled';
+                $repeatOrder->write();
+                return $this->redirectBack();
+            }
+        }
+        die("Could not cancel repeat order, please contact that administrator for assistance.");
+    }
+
+    /**
+     * Show a list of all repeating orders.
+     * @return HTML
+     */
+    public function admin()
+    {
+        $shopAdminCode = EcommerceConfig::get("EcommerceRole", "admin_permission_code");
+        if (Permission::check("ADMIN") || Permission::check($shopAdminCode)) {
+            RepeatOrder::create_automatically_created_orders();
+            $params = array(
+                "AllRepeatOrders" => RepeatOrder::get()->filter(["Status" => 'Active'])
+            );
+            Requirements::javascript(THIRDPARTY_DIR."/jquery/jquery.js");
+            //Requirements::block(THIRDPARTY_DIR."/jquery/jquery.js");
+            //Requirements::javascript(Director::protocol()."ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js");
+            Requirements::javascript("ecommerce_repeatorders/javascript/RepeatOrdersPage_admin.js");
+            Requirements::themedCSS("RepeatOrdersPage_admin");
+
+            return $this->renderWith(
+                ['RepeatOrdersPage_admin', 'Page'],
+                $params
+            );
+        } else {
+            return Security::permissionFailure($this, _t('OrderReport.PERMISSIONFAILURE', 'Sorry you do not have permission for this function. Please login as an Adminstrator'));
+        }
     }
 
     public function ajaxcreateorder($request)
@@ -306,40 +321,25 @@ class RepeatOrdersPage_Controller extends AccountPage_Controller
                 $orderID
             );
         } elseif ($repeatOrderID) {
+
             return RepeatOrderForm::create(
                 $this,
                 'RepeatOrderForm',
                 $repeatOrderID,
-                $orderID
+                $orderID,
+                true
             );
         } else {
             return $this->redirect('404-could-not-find-order');
         }
     }
-    /**
-     * Show a list of all repeating orders.
-     * @return HTML
-     */
-    public function admin()
-    {
-        $shopAdminCode = EcommerceConfig::get("EcommerceRole", "admin_permission_code");
-        if (Permission::check("ADMIN") || Permission::check($shopAdminCode)) {
-            RepeatOrder::create_automatically_created_orders();
-            $params = array(
-                "AllRepeatOrders" => RepeatOrder::get()->filter(["Status" => 'Active'])
-            );
-            Requirements::javascript(THIRDPARTY_DIR."/jquery/jquery.js");
-            //Requirements::block(THIRDPARTY_DIR."/jquery/jquery.js");
-            //Requirements::javascript(Director::protocol()."ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js");
-            Requirements::javascript("ecommerce_repeatorders/javascript/RepeatOrdersPage_admin.js");
-            Requirements::themedCSS("RepeatOrdersPage_admin");
 
-            return $this->renderWith(
-                ['RepeatOrdersPage_admin', 'Page'],
-                $params
-            );
-        } else {
-            return Security::permissionFailure($this, _t('OrderReport.PERMISSIONFAILURE', 'Sorry you do not have permission for this function. Please login as an Adminstrator'));
+    public function AccountPageLink()
+    {
+        $accountPage = AccountPage::get()->first();
+        if($accountPage){
+            return $accountPage->Link();
         }
+        return false;
     }
 }

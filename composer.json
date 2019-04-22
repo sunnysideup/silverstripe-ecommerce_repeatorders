@@ -21,7 +21,8 @@
     ],
     "require": {
         "silverstripe/framework": "~3.6",
-        "sunnysideup/ecommerce": "*"
+        "sunnysideup/ecommerce": "*",
+        "stevie-mayhew/trait-loader": "^1.0"
     },
     "extra": {
         "installer-name": "ecommerce_repeatorders"

@@ -1,13 +1,10 @@
 <div id="Account">
-	<div class="typography">
-
-		<% control Order %>
-			<div class="block">
-				<h3>Overview</h3>
-				<% include RepeatOrder_Order %>
-			</div>
-		<% end_control %>
-		$RepeatOrderForm
-
-	</div>
+   <div class="typography">
+       <% if RepeatOrder %>
+           <h3>Overview</h3>
+           $RepeatOrderForm
+       <% else %>
+           <p><strong>$Message</strong></p>
+       <% end_if %>
+   </div>
 </div>
